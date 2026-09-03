@@ -1,0 +1,6 @@
+.DS_Store
+.build/
+MechaKeys.app/
+dist/
+*.dmg
+*.zip
