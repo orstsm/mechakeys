@@ -182,7 +182,7 @@ private struct MechaKeysPanel: View {
             Divider()
 
             HStack {
-                Text("Version 2.7")
+                Text("Version 2.8.1")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
 
@@ -218,7 +218,7 @@ private struct MechaKeysPanel: View {
 
                 Spacer()
 
-                Text("Version 2.7")
+                Text("Version 2.8.1")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

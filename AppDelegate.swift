@@ -10,12 +10,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         didSet {
             audioController?.setVolume(Float(volume))
             UserDefaults.standard.set(volume, forKey: "volume")
+            broadcastNotchShelfState()
         }
     }
     @Published var soundProfile: KeyboardSoundProfile {
         didSet {
             audioController?.setProfile(soundProfile)
             UserDefaults.standard.set(soundProfile.rawValue, forKey: "soundProfile")
+            broadcastNotchShelfState()
         }
     }
     @Published private(set) var hasKeyboardAccess = false
@@ -26,6 +28,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var audioController: InputAudioController?
     private var bluetoothAudioMonitor: BluetoothAudioMonitor?
     private var userSoundEnabled: Bool
+    private var notchShelfObservers: [NSObjectProtocol] = []
+
+    private static let notchShelfCommandNotification = Notification.Name(
+        "com.orstsm.mechakeys.command"
+    )
+    private static let notchShelfStateNotification = Notification.Name(
+        "com.orstsm.mechakeys.state"
+    )
 
     override init() {
         let defaults = UserDefaults.standard
@@ -74,9 +84,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         bluetoothMonitor.start()
 
+        installNotchShelfBridge()
+
         updateKeyboardAccess()
         requestKeyboardAccessOnFirstLaunch()
         startAccessChecksIfNeeded()
+        broadcastNotchShelfState()
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
@@ -85,6 +98,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        broadcastNotchShelfState(running: false)
+        notchShelfObservers.forEach {
+            DistributedNotificationCenter.default().removeObserver($0)
+        }
+        notchShelfObservers.removeAll()
         keyboardMonitor?.stop()
         accessCheckTimer?.invalidate()
         bluetoothAudioMonitor?.stop()
@@ -97,7 +115,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func toggleSounds() {
-        guard !bluetoothAudioConnected else { return }
         userSoundEnabled.toggle()
         UserDefaults.standard.set(userSoundEnabled, forKey: "soundEnabled")
         applyPlaybackState(playTestOnEnable: true)
@@ -150,6 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     private func updateKeyboardAccess() {
         let accessGranted = CGPreflightListenEventAccess()
+        let accessChanged = hasKeyboardAccess != accessGranted
         hasKeyboardAccess = accessGranted
 
         if accessGranted {
@@ -161,6 +179,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         } else if keyboardMonitor != nil {
             keyboardMonitor?.stop()
             keyboardMonitor = nil
+        }
+
+        if accessChanged {
+            broadcastNotchShelfState()
         }
     }
 
@@ -212,6 +234,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         } else if shouldEnable && rebuildAudioRoute {
             audioController?.rebuildAudioRoute()
         }
+
+        broadcastNotchShelfState()
+    }
+
+    private func installNotchShelfBridge() {
+        let observer = DistributedNotificationCenter.default().addObserver(
+            forName: Self.notchShelfCommandNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.handleNotchShelfCommand(notification.userInfo)
+            }
+        }
+        notchShelfObservers.append(observer)
+    }
+
+    private func handleNotchShelfCommand(_ information: [AnyHashable: Any]?) {
+        guard let information,
+              information["sender"] as? String == "com.orstsm.notchshelf",
+              let command = information["command"] as? String
+        else { return }
+
+        switch command {
+        case "requestState":
+            break
+        case "toggleSounds":
+            toggleSounds()
+        case "setVolume":
+            if let value = information["volume"] as? Double {
+                volume = min(max(value, 0), 1)
+            } else if let number = information["volume"] as? NSNumber {
+                volume = min(max(number.doubleValue, 0), 1)
+            }
+        case "setProfile":
+            if let rawProfile = information["profile"] as? String,
+               let profile = KeyboardSoundProfile(rawValue: rawProfile) {
+                selectSoundProfile(profile)
+            }
+        case "playTestSound":
+            playTestSound()
+        case "quit":
+            broadcastNotchShelfState(running: false)
+            NSApplication.shared.terminate(nil)
+            return
+        default:
+            return
+        }
+
+        broadcastNotchShelfState()
+    }
+
+    private func broadcastNotchShelfState(running: Bool = true) {
+        DistributedNotificationCenter.default().postNotificationName(
+            Self.notchShelfStateNotification,
+            object: nil,
+            userInfo: [
+                "running": running,
+                "soundEnabled": soundEnabled,
+                "soundPreferenceEnabled": userSoundEnabled,
+                "bluetoothPaused": bluetoothAudioConnected,
+                "hasInputPermission": hasKeyboardAccess,
+                "volume": volume,
+                "profile": soundProfile.rawValue
+            ],
+            deliverImmediately: true
+        )
     }
 
     private func presentAudioError(_ error: Error) {
