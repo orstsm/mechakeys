@@ -2,11 +2,11 @@
 set -euo pipefail
 
 PROJECT_DIR="${0:A:h}"
-APP_DIR="$PROJECT_DIR/MechaKeys.app"
+BUILD_DIR="$PROJECT_DIR/.build"
+APP_DIR="$BUILD_DIR/Products/MechaKeys.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
-BUILD_DIR="$PROJECT_DIR/.build"
 MODULE_CACHE_DIR="$BUILD_DIR/module-cache"
 ARCHS=(arm64 x86_64)
 
@@ -39,12 +39,17 @@ for arch in "${ARCHS[@]}"; do
         -framework AppKit \
         -framework ApplicationServices \
         -framework AVFoundation \
+        -framework Combine \
         -framework CoreAudio \
         -framework CoreGraphics \
+        -framework QuartzCore \
         -framework ServiceManagement \
         -framework SwiftUI \
         "$PROJECT_DIR/MechaKeysApp.swift" \
         "$PROJECT_DIR/AppDelegate.swift" \
+        "$PROJECT_DIR/ShelfModel.swift" \
+        "$PROJECT_DIR/NotchWindowController.swift" \
+        "$PROJECT_DIR/NotchView.swift" \
         "$PROJECT_DIR/GlobalKeyboardMonitor.swift" \
         "$PROJECT_DIR/KeyboardAudioEngine.swift" \
         "$PROJECT_DIR/InputAudioController.swift" \
@@ -88,4 +93,4 @@ codesign --verify --deep --strict --verbose=2 "$APP_DIR"
 xcrun lipo -info "$MACOS_DIR/MechaKeys"
 
 echo "Built $APP_DIR"
-echo "Launch with: open '$APP_DIR'"
+echo "Builds never replace the installed app. Quit MechaKeys, then run: zsh install.sh"

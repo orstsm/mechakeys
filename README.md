@@ -1,6 +1,6 @@
 # MechaKeys
 
-A lightweight macOS menu-bar app that plays low-latency mechanical sounds for global key presses and mouse clicks.
+A lightweight native macOS notch app that plays low-latency mechanical sounds for global key presses and mouse clicks, with optional menu-bar controls.
 
 MechaKeys includes three sound profiles inspired by modern mechanical keyboards:
 
@@ -8,11 +8,11 @@ MechaKeys includes three sound profiles inspired by modern mechanical keyboards:
 - **K Pro Red** — ten natural regular-key variations, four distinct Space variations, and the original mouse-click recording supplied by the app owner
 - **Alpaca** — recorded mouse, regular-key, Delete/Backspace, and Space variations supplied by the app owner
 
-The menu-bar controls let you turn sounds on or off, select a profile, change the volume, and play a test sound. Your choices are remembered between launches. The About page documents the complete feature set and privacy behavior inside the app.
+MechaKeys lives natively in your MacBook notch. Hover over the physical notch anytime to expand the control center, adjust volume, switch sound profiles, play a test sound, or mute playback. Your choices are remembered between launches. If desired, you can also toggle an optional menu-bar icon from the settings.
 
 When a Bluetooth headset, earphone, or speaker connects, MechaKeys pauses automatically. It resumes after the last connected Bluetooth audio output disconnects, provided sounds were manually enabled beforehand. Bluetooth keyboards, mice, and other non-audio accessories are ignored. Audio-route changes are debounced and rebuild the audio engine so connecting or disconnecting devices cannot leave playback stuck.
 
-Enable **Launch at Login** in the MechaKeys panel to keep its keyboard icon available automatically after restarting your Mac. Turn sounds off from the panel instead of quitting the app when you want silence.
+Enable **Launch at Login** in the MechaKeys panel to start it automatically after restarting your Mac. Turn sounds off from the panel instead of quitting the app when you want silence.
 
 ## Energy behavior
 
@@ -40,9 +40,11 @@ The default build is universal and supports both Apple Silicon and Intel Macs.
 ## Build and run
 
 ```sh
-chmod +x build.sh
-./build.sh
-open MechaKeys.app
+zsh Tests/run.sh
+zsh build.sh --build-only
+# Quit any running MechaKeys before installing.
+zsh install.sh
+open "$HOME/Applications/MechaKeys.app"
 ```
 
 To create a personal drag-to-Applications DMG and a GitHub-ready source archive:
@@ -54,3 +56,11 @@ To create a personal drag-to-Applications DMG and a GitHub-ready source archive:
 On first launch, allow MechaKeys in **System Settings → Privacy & Security → Input Monitoring**. If it was already open when access was granted, quit and reopen it once. MechaKeys uses a passive event listener: it observes numeric key codes and mouse-button-down types only, and never changes or stores what you type.
 
 The Default and K Pro Red recordings are intended for the app owner's personal use. Confirm that you have redistribution rights before publishing those audio assets in a public repository or release.
+
+## Reliability update (2.10.1)
+
+Hover is driven by mouse movement with no recurring pointer timer or intentional opening delay. A single cancellable exit deadline handles closing. The audio engine still sleeps after 30 seconds of inactivity; notch detection and audio sleep are separate.
+
+Run `zsh Tests/run.sh` for regression checks and `zsh build.sh --build-only` to build. Builds no longer install automatically. Quit MechaKeys, then run `zsh install.sh` to install a verified build in your Applications folder while preserving the previous version. Local signatures can still require Input Monitoring reauthorization after replacement. Public releases require Developer ID signing and notarization via `release.sh`.
+
+See [RELIABILITY.md](RELIABILITY.md) for the design, test coverage, and remaining acceptance checks. Build products are ignored by Git; attach packaged installers to GitHub Releases rather than committing them as source.

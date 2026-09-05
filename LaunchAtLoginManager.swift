@@ -19,13 +19,29 @@ enum LaunchAtLoginManager {
     static var isEnabled: Bool {
         if isInstalledInApplications {
             let status = SMAppService.mainApp.status
-            return status == .enabled || status == .requiresApproval
+            return status == .enabled
         }
         return FileManager.default.fileExists(atPath: plistURL.path)
     }
 
     static func hardenExistingRegistration() {
         guard FileManager.default.fileExists(atPath: plistURL.path) else { return }
+        if isInstalledInApplications {
+            // Keep the old registration until the replacement is approved.
+            do {
+                if SMAppService.mainApp.status == .notRegistered {
+                    try SMAppService.mainApp.register()
+                }
+                if SMAppService.mainApp.status == .enabled { try remove() }
+            } catch {
+                NSLog("MechaKeys login migration deferred: %@", error.localizedDescription)
+            }
+            return
+        }
+        // Keep legacy launch-agent registrations pointed at the copy that is
+        // currently running. This also repairs registrations created before
+        // the app was moved into the user's Applications folder.
+        try? install()
         try? FileManager.default.setAttributes(
             [.posixPermissions: 0o600],
             ofItemAtPath: plistURL.path
@@ -39,6 +55,10 @@ enum LaunchAtLoginManager {
             } else if !enabled, SMAppService.mainApp.status != .notRegistered {
                 try SMAppService.mainApp.unregister()
             }
+            if !enabled || SMAppService.mainApp.status == .enabled { try remove() }
+            if enabled, SMAppService.mainApp.status == .requiresApproval {
+                SMAppService.openSystemSettingsLoginItems()
+            }
             return
         }
 
@@ -50,9 +70,11 @@ enum LaunchAtLoginManager {
     }
 
     private static func install() throws {
-        guard let executableURL = Bundle.main.executableURL else {
+        guard Bundle.main.executableURL != nil else {
             throw LaunchAtLoginError.missingExecutable
         }
+
+        let applicationURL = Bundle.main.bundleURL.standardizedFileURL
 
         try FileManager.default.createDirectory(
             at: launchAgentsDirectory,
@@ -61,10 +83,13 @@ enum LaunchAtLoginManager {
 
         let propertyList: [String: Any] = [
             "Label": label,
-            "ProgramArguments": [executableURL.path],
+            // Launch through Launch Services so macOS registers MechaKeys as
+            // an application. Starting the Mach-O executable directly breaks
+            // reopen behavior and cross-app notifications after login.
+            "ProgramArguments": ["/usr/bin/open", "-gj", applicationURL.path],
             "RunAtLoad": true,
             "LimitLoadToSessionType": "Aqua",
-            "ProcessType": "Interactive"
+            "ThrottleInterval": 60
         ]
 
         let data = try PropertyListSerialization.data(
@@ -80,13 +105,15 @@ enum LaunchAtLoginManager {
     }
 
     private static func remove() throws {
-        guard isEnabled else { return }
+        guard FileManager.default.fileExists(atPath: plistURL.path) else { return }
         try FileManager.default.removeItem(at: plistURL)
     }
 
     private static var isInstalledInApplications: Bool {
         let path = Bundle.main.bundleURL.standardizedFileURL.path
-        return path.hasPrefix("/Applications/") || path.hasPrefix("/System/Applications/")
+        let userApplications = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Applications", isDirectory: true).path + "/"
+        return path.hasPrefix("/Applications/") || path.hasPrefix(userApplications)
     }
 }
 

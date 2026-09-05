@@ -4,38 +4,47 @@ import Combine
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+    var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development" }
     @Published private(set) var soundEnabled: Bool
     @Published private(set) var bluetoothAudioConnected = false
     @Published var volume: Double {
         didSet {
+            let validated = Self.validVolume(volume)
+            if volume != validated { volume = validated }
             audioController?.setVolume(Float(volume))
             UserDefaults.standard.set(volume, forKey: "volume")
-            broadcastNotchShelfState()
         }
     }
     @Published var soundProfile: KeyboardSoundProfile {
         didSet {
             audioController?.setProfile(soundProfile)
             UserDefaults.standard.set(soundProfile.rawValue, forKey: "soundProfile")
-            broadcastNotchShelfState()
         }
     }
     @Published private(set) var hasKeyboardAccess = false
+    @Published private(set) var audioError: String?
     @Published private(set) var launchAtLogin = false
+    @Published var showsMenuBarIcon: Bool {
+        didSet {
+            UserDefaults.standard.set(showsMenuBarIcon, forKey: "showsMenuBarIcon")
+        }
+    }
+
+    var statusText: String {
+        if bluetoothAudioConnected { return "BT paused" }
+        if audioError != nil { return "Audio unavailable" }
+        if soundEnabled && !hasKeyboardAccess { return "Input unavailable" }
+        return soundEnabled ? "Sounds on" : "Sounds off"
+    }
 
     private var keyboardMonitor: GlobalKeyboardMonitor?
     private var accessCheckTimer: Timer?
     private var audioController: InputAudioController?
     private var bluetoothAudioMonitor: BluetoothAudioMonitor?
     private var userSoundEnabled: Bool
-    private var notchShelfObservers: [NSObjectProtocol] = []
 
-    private static let notchShelfCommandNotification = Notification.Name(
-        "com.orstsm.mechakeys.command"
-    )
-    private static let notchShelfStateNotification = Notification.Name(
-        "com.orstsm.mechakeys.state"
-    )
+    private var notchWindowController: NotchWindowController?
+    private var shelfModel: ShelfModel?
 
     override init() {
         let defaults = UserDefaults.standard
@@ -44,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             : defaults.bool(forKey: "soundEnabled")
         userSoundEnabled = savedSoundEnabled
         soundEnabled = savedSoundEnabled
-        volume = defaults.object(forKey: "volume") as? Double ?? 0.72
+        volume = Self.validVolume(defaults.object(forKey: "volume") as? Double ?? 0.72)
         let savedProfile = defaults.string(forKey: "soundProfile") ?? ""
         soundProfile = savedProfile == "K Pro Brown"
             ? .alpaca
@@ -52,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if savedProfile == "K Pro Brown" {
             defaults.set(KeyboardSoundProfile.alpaca.rawValue, forKey: "soundProfile")
         }
+        showsMenuBarIcon = defaults.bool(forKey: "showsMenuBarIcon")
         super.init()
     }
 
@@ -75,21 +85,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 idleTimeout: 30
             )
             audioController = controller
+            controller.onHealthChange = { [weak self] error in
+                Task { @MainActor in self?.audioError = error }
+            }
             if soundEnabled {
                 controller.warm()
             }
         } catch {
+            audioError = error.localizedDescription
             presentAudioError(error)
         }
 
         bluetoothMonitor.start()
 
-        installNotchShelfBridge()
+        let shelf = ShelfModel()
+        self.shelfModel = shelf
+        shelf.start()
+
+        let notchController = NotchWindowController(model: shelf, appDelegate: self)
+        self.notchWindowController = notchController
+        notchController.show()
+        shelf.openManually()
 
         updateKeyboardAccess()
         requestKeyboardAccessOnFirstLaunch()
         startAccessChecksIfNeeded()
-        broadcastNotchShelfState()
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
@@ -97,12 +117,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         updateKeyboardAccess()
     }
 
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows flag: Bool
+    ) -> Bool {
+        notchWindowController?.orderFront()
+        shelfModel?.openManually()
+        return true
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
-        broadcastNotchShelfState(running: false)
-        notchShelfObservers.forEach {
-            DistributedNotificationCenter.default().removeObserver($0)
-        }
-        notchShelfObservers.removeAll()
+        shelfModel?.stop()
+        notchWindowController?.stop()
         keyboardMonitor?.stop()
         accessCheckTimer?.invalidate()
         bluetoothAudioMonitor?.stop()
@@ -120,6 +146,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         applyPlaybackState(playTestOnEnable: true)
     }
 
+    func setVolume(_ newVolume: Double) {
+        volume = Self.validVolume(newVolume)
+    }
+
+    static func validVolume(_ value: Double) -> Double {
+        value.isFinite ? min(max(value, 0), 1) : 0.72
+    }
+
     func selectSoundProfile(_ profile: KeyboardSoundProfile) {
         soundProfile = profile
         playTestSound()
@@ -133,6 +167,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             refreshLaunchAtLoginStatus()
             presentLaunchAtLoginError(error)
         }
+    }
+
+    func setShowsMenuBarIcon(_ shows: Bool) {
+        showsMenuBarIcon = shows
     }
 
     func requestKeyboardAccess() {
@@ -158,8 +196,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     private func startAccessChecksIfNeeded() {
         guard soundEnabled, !hasKeyboardAccess, accessCheckTimer == nil else { return }
-        accessCheckTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        accessCheckTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
             Task { @MainActor in
+                self?.accessCheckTimer = nil
                 self?.updateKeyboardAccess()
             }
         }
@@ -167,12 +206,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     private func updateKeyboardAccess() {
         let accessGranted = CGPreflightListenEventAccess()
-        let accessChanged = hasKeyboardAccess != accessGranted
         hasKeyboardAccess = accessGranted
 
         if accessGranted {
-            accessCheckTimer?.invalidate()
-            accessCheckTimer = nil
             if soundEnabled {
                 installKeyboardMonitorIfNeeded()
             }
@@ -180,9 +216,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             keyboardMonitor?.stop()
             keyboardMonitor = nil
         }
-
-        if accessChanged {
-            broadcastNotchShelfState()
+        if hasKeyboardAccess {
+            accessCheckTimer?.invalidate()
+            accessCheckTimer = nil
+        } else {
+            startAccessChecksIfNeeded()
         }
     }
 
@@ -234,73 +272,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         } else if shouldEnable && rebuildAudioRoute {
             audioController?.rebuildAudioRoute()
         }
-
-        broadcastNotchShelfState()
-    }
-
-    private func installNotchShelfBridge() {
-        let observer = DistributedNotificationCenter.default().addObserver(
-            forName: Self.notchShelfCommandNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            Task { @MainActor in
-                self?.handleNotchShelfCommand(notification.userInfo)
-            }
-        }
-        notchShelfObservers.append(observer)
-    }
-
-    private func handleNotchShelfCommand(_ information: [AnyHashable: Any]?) {
-        guard let information,
-              information["sender"] as? String == "com.orstsm.notchshelf",
-              let command = information["command"] as? String
-        else { return }
-
-        switch command {
-        case "requestState":
-            break
-        case "toggleSounds":
-            toggleSounds()
-        case "setVolume":
-            if let value = information["volume"] as? Double {
-                volume = min(max(value, 0), 1)
-            } else if let number = information["volume"] as? NSNumber {
-                volume = min(max(number.doubleValue, 0), 1)
-            }
-        case "setProfile":
-            if let rawProfile = information["profile"] as? String,
-               let profile = KeyboardSoundProfile(rawValue: rawProfile) {
-                selectSoundProfile(profile)
-            }
-        case "playTestSound":
-            playTestSound()
-        case "quit":
-            broadcastNotchShelfState(running: false)
-            NSApplication.shared.terminate(nil)
-            return
-        default:
-            return
-        }
-
-        broadcastNotchShelfState()
-    }
-
-    private func broadcastNotchShelfState(running: Bool = true) {
-        DistributedNotificationCenter.default().postNotificationName(
-            Self.notchShelfStateNotification,
-            object: nil,
-            userInfo: [
-                "running": running,
-                "soundEnabled": soundEnabled,
-                "soundPreferenceEnabled": userSoundEnabled,
-                "bluetoothPaused": bluetoothAudioConnected,
-                "hasInputPermission": hasKeyboardAccess,
-                "volume": volume,
-                "profile": soundProfile.rawValue
-            ],
-            deliverImmediately: true
-        )
     }
 
     private func presentAudioError(_ error: Error) {

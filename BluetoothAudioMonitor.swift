@@ -6,6 +6,7 @@ final class BluetoothAudioMonitor {
 
     private let systemObject = AudioObjectID(kAudioObjectSystemObject)
     private let queue = DispatchQueue(label: "com.mechakeys.bluetooth-audio", qos: .utility)
+    private let queueKey = DispatchSpecificKey<Bool>()
     private let stateHandler: StateHandler
     private var listenerBlock: AudioObjectPropertyListenerBlock?
     private var pendingEvaluation: DispatchWorkItem?
@@ -31,6 +32,7 @@ final class BluetoothAudioMonitor {
 
     init(stateHandler: @escaping StateHandler) {
         self.stateHandler = stateHandler
+        queue.setSpecific(key: queueKey, value: true)
     }
 
     var hasConnectedBluetoothAudioOutput: Bool {
@@ -38,6 +40,10 @@ final class BluetoothAudioMonitor {
     }
 
     func start() {
+        queue.sync { startOnQueue() }
+    }
+
+    private func startOnQueue() {
         guard !isStarted else { return }
         lastReportedBluetoothState = hasConnectedBluetoothAudioOutput
 
@@ -77,6 +83,14 @@ final class BluetoothAudioMonitor {
     }
 
     func stop() {
+        if DispatchQueue.getSpecific(key: queueKey) == true {
+            stopOnQueue()
+        } else {
+            queue.sync { stopOnQueue() }
+        }
+    }
+
+    private func stopOnQueue() {
         guard isStarted, let listenerBlock else { return }
         pendingEvaluation?.cancel()
         pendingEvaluation = nil
@@ -106,6 +120,7 @@ final class BluetoothAudioMonitor {
     }
 
     private func scheduleEvaluation() {
+        guard isStarted else { return }
         pendingEvaluation?.cancel()
         pendingFollowUpEvaluation?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
@@ -125,6 +140,7 @@ final class BluetoothAudioMonitor {
     }
 
     private func publishState(alwaysNotify: Bool) {
+        guard isStarted else { return }
         let currentState = hasConnectedBluetoothAudioOutput
         let changed = lastReportedBluetoothState != currentState
         lastReportedBluetoothState = currentState
@@ -166,6 +182,7 @@ final class BluetoothAudioMonitor {
         }
 
         let count = Int(dataSize) / MemoryLayout<AudioDeviceID>.size
+        guard count > 0 else { return [] }
         var deviceIDs = [AudioDeviceID](repeating: 0, count: count)
         let status = deviceIDs.withUnsafeMutableBytes { bytes in
             AudioObjectGetPropertyData(

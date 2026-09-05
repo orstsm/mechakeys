@@ -3,14 +3,16 @@ set -euo pipefail
 
 PROJECT_DIR="${0:A:h}"
 DIST_DIR="$PROJECT_DIR/dist"
-APP_DIR="$PROJECT_DIR/MechaKeys.app"
+APP_DIR="$PROJECT_DIR/.build/Products/MechaKeys.app"
+VERSION="$(plutil -extract CFBundleShortVersionString raw "$PROJECT_DIR/Info.plist")"
 UPLOAD_ZIP="$DIST_DIR/MechaKeys-notarization.zip"
-FINAL_ZIP="$DIST_DIR/MechaKeys-2.7.0.zip"
+FINAL_ZIP="$DIST_DIR/MechaKeys-$VERSION.zip"
 
 : "${MECHAKEYS_SIGNING_IDENTITY:?Set this to your Developer ID Application identity}"
 : "${MECHAKEYS_NOTARY_PROFILE:?Set this to your notarytool keychain profile}"
 
-MECHAKEYS_SIGNING_IDENTITY="$MECHAKEYS_SIGNING_IDENTITY" "$PROJECT_DIR/build.sh"
+[[ "$MECHAKEYS_SIGNING_IDENTITY" != "-" ]] || { echo "Developer ID required" >&2; exit 1; }
+MECHAKEYS_SIGNING_IDENTITY="$MECHAKEYS_SIGNING_IDENTITY" "$PROJECT_DIR/build.sh" --build-only
 
 mkdir -p "$DIST_DIR"
 rm -f "$UPLOAD_ZIP" "$FINAL_ZIP"

@@ -14,7 +14,10 @@ struct MechaKeysApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra {
+        MenuBarExtra(isInserted: Binding(
+            get: { appDelegate.showsMenuBarIcon },
+            set: { appDelegate.setShowsMenuBarIcon($0) }
+        )) {
             MechaKeysPanel(appDelegate: appDelegate)
         } label: {
             Label(
@@ -23,6 +26,10 @@ struct MechaKeysApp: App {
             )
         }
         .menuBarExtraStyle(.window)
+
+        Settings {
+            EmptyView()
+        }
     }
 }
 
@@ -175,14 +182,14 @@ private struct MechaKeysPanel: View {
             }
             .toggleStyle(.switch)
 
-            Text("Keep MechaKeys running and use the button above to turn sounds off. The keyboard icon will stay in your menu bar.")
+            Text("MechaKeys lives in your MacBook notch. Hover the notch to access all controls anytime.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             Divider()
 
             HStack {
-                Text("Version 2.8.1")
+                Text("Version \(appDelegate.version)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
 
@@ -218,7 +225,7 @@ private struct MechaKeysPanel: View {
 
                 Spacer()
 
-                Text("Version 2.8.1")
+                Text("Version \(appDelegate.version)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

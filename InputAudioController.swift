@@ -27,10 +27,12 @@ final class InputAudioController {
     private let stateLock = NSLock()
     private let engine: any InputAudioEngine
     private let idleTimeout: TimeInterval
+    var onHealthChange: ((String?) -> Void)?
     private let maximumWarmEventDelayNanoseconds: UInt64 = 25_000_000
     private let timingLogEnabled = ProcessInfo.processInfo.environment["MECHAKEYS_TIMING_LOG"] == "1"
 
     private var phase: Phase = .sleeping
+    private var generation: UInt64 = 0
     private var pendingWakeKey: UInt16?
     private var lastInputNanoseconds = DispatchTime.now().uptimeNanoseconds
     private var wakeStartedNanoseconds = DispatchTime.now().uptimeNanoseconds
@@ -87,11 +89,12 @@ final class InputAudioController {
             wakeStartedNanoseconds = now
             shouldStart = true
         }
+        let ticket = generation
         stateLock.unlock()
 
         if shouldStart {
             queue.async { [weak self] in
-                self?.finishWake()
+                self?.finishWake(ticket: ticket)
             }
         }
     }
@@ -125,15 +128,16 @@ final class InputAudioController {
         case .ready:
             shouldPlayImmediately = true
         }
+        let ticket = generation
         stateLock.unlock()
 
         if shouldStart {
             queue.async { [weak self] in
-                self?.finishWake()
+                self?.finishWake(ticket: ticket)
             }
         } else if shouldPlayImmediately {
             queue.async { [weak self] in
-                self?.playWarmEvent(input, eventTime: eventTime)
+                self?.playWarmEvent(input, eventTime: eventTime, ticket: ticket)
             }
         }
     }
@@ -156,6 +160,7 @@ final class InputAudioController {
 
     func suspend() {
         stateLock.lock()
+        generation &+= 1
         phase = .sleeping
         pendingWakeKey = nil
         stateLock.unlock()
@@ -174,6 +179,7 @@ final class InputAudioController {
 
     func stopSynchronously() {
         stateLock.lock()
+        generation &+= 1
         phase = .sleeping
         pendingWakeKey = nil
         stateLock.unlock()
@@ -184,14 +190,21 @@ final class InputAudioController {
         }
     }
 
-    private func finishWake() {
+    private func finishWake(ticket: UInt64) {
+        stateLock.lock()
+        let valid = ticket == generation && phase == .waking
+        stateLock.unlock()
+        guard valid else { return }
         do {
             try engine.start()
         } catch {
             NSLog("MechaKeys could not start audio: %@", error.localizedDescription)
+            onHealthChange?(error.localizedDescription)
             stateLock.lock()
-            phase = .sleeping
-            pendingWakeKey = nil
+            if ticket == generation {
+                phase = .sleeping
+                pendingWakeKey = nil
+            }
             stateLock.unlock()
             return
         }
@@ -199,19 +212,20 @@ final class InputAudioController {
         var keyToPlay: UInt16?
         var wakeStarted: UInt64 = 0
         stateLock.lock()
-        if phase == .waking {
+        if ticket == generation && phase == .waking {
             phase = .ready
             keyToPlay = pendingWakeKey
             pendingWakeKey = nil
             wakeStarted = wakeStartedNanoseconds
         }
-        let stillReady = phase == .ready
+        let stillReady = ticket == generation && phase == .ready
         stateLock.unlock()
 
         guard stillReady else {
             engine.suspend()
             return
         }
+        onHealthChange?(nil)
 
         if timingLogEnabled {
             let now = DispatchTime.now().uptimeNanoseconds
@@ -231,9 +245,9 @@ final class InputAudioController {
         scheduleIdleTimerFromLastInput()
     }
 
-    private func playWarmEvent(_ input: GlobalInputEvent, eventTime: UInt64) {
+    private func playWarmEvent(_ input: GlobalInputEvent, eventTime: UInt64, ticket: UInt64) {
         stateLock.lock()
-        let stillReady = phase == .ready
+        let stillReady = ticket == generation && phase == .ready
         stateLock.unlock()
         guard stillReady else { return }
 
@@ -274,7 +288,12 @@ final class InputAudioController {
 
         stateLock.lock()
         let elapsed = now >= lastInputNanoseconds ? now - lastInputNanoseconds : 0
-        guard phase == .ready, elapsed >= timeoutNanoseconds else {
+        guard phase == .ready else {
+            stateLock.unlock()
+            idleTimer.schedule(deadline: .distantFuture)
+            return
+        }
+        guard elapsed >= timeoutNanoseconds else {
             stateLock.unlock()
             scheduleIdleTimerFromLastInput()
             return

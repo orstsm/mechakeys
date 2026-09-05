@@ -2,9 +2,9 @@
 
 ## Input access
 
-MechaKeys requests macOS Input Monitoring permission because its core function requires observing global key-down and mouse-button-down events. The event tap is passive (`listenOnly`): it cannot change, suppress, or inject input. For keyboard events, only the numeric physical key code is read. For mouse events, only the button number is read; pointer coordinates are not accessed. These values are used immediately to choose and position a sound, then discarded.
+MechaKeys requests macOS Input Monitoring permission to observe global key-down and mouse-button-down events. The audio event tap is passive (`listenOnly`) and reads physical key codes and button numbers, not typed text. Separately, the notch observes mouse movement and reads the current pointer position locally to open its controls. Pointer positions are not recorded or transmitted. There is no recurring hover polling timer; movement opens the notch and a single exit deadline closes it.
 
-Input monitoring is removed completely whenever sounds are turned off. MechaKeys does not reconstruct text, inspect clipboard contents, write input events to disk, or transmit data.
+The audio input tap is removed when sounds are off. Mouse movement observation remains available for the notch. MechaKeys does not reconstruct text, inspect clipboard contents, write input events to disk, or transmit data.
 
 ## Data and network
 
@@ -14,6 +14,7 @@ The app contains no networking client and collects no analytics. It stores only 
 - volume
 - selected switch profile
 - whether the Input Monitoring prompt has been shown
+- optional menu-bar icon and notch visibility/recovery preferences
 
 The included privacy manifest declares no tracking or collected data.
 
@@ -27,4 +28,6 @@ Local builds are ad-hoc signed and are for development on one Mac only. They mus
 
 ## Launch at login
 
-When installed in `/Applications`, MechaKeys uses Apple's `SMAppService.mainApp`. Local development copies use a user-owned LaunchAgent with mode `0600`; it runs only the current app executable and has no elevated privileges.
+When installed in `/Applications` or the user's `Applications` folder, MechaKeys uses Apple's `SMAppService.mainApp`. Legacy LaunchAgents are retained until migration is approved, then removed. Development copies elsewhere use a user-owned LaunchAgent with mode `0600`, launching the app through `/usr/bin/open` without a shell or elevated privileges.
+
+Building and packaging never replace an installed application. The separate installer verifies a staged bundle, refuses to replace a running app, and uses a same-volume atomic exchange with a preserved rollback copy. Ad-hoc builds remain for personal testing, not public distribution.
