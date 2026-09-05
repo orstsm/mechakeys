@@ -47,6 +47,8 @@ for arch in "${ARCHS[@]}"; do
         -framework SwiftUI \
         "$PROJECT_DIR/MechaKeysApp.swift" \
         "$PROJECT_DIR/AppDelegate.swift" \
+        "$PROJECT_DIR/UpdateChecker.swift" \
+        "$PROJECT_DIR/UpdateSettingsView.swift" \
         "$PROJECT_DIR/ShelfModel.swift" \
         "$PROJECT_DIR/NotchWindowController.swift" \
         "$PROJECT_DIR/NotchView.swift" \

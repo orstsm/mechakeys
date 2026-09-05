@@ -290,8 +290,8 @@ private struct MechaKeysPanel: View {
                     )
                     featureRow(
                         icon: "lock.shield.fill",
-                        title: "Private and offline",
-                        description: "MechaKeys observes only key codes and mouse-button events. It stores no typed text, uses no analytics, and requires no network access."
+                        title: "Private typing",
+                        description: "Sounds work offline. No typed text or analytics are collected. Optional update checks contact GitHub; keyboard and mouse activity are never sent."
                     )
                     featureRow(
                         icon: "laptopcomputer",

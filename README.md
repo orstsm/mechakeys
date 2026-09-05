@@ -20,6 +20,8 @@ MechaKeys keeps its audio engine warm for 30 seconds after input, then stops it 
 
 ## Production releases
 
+Version 2.11.0 adds **Settings → Check for Updates** and opt-in daily checks. Checks read public GitHub release metadata; playback still works offline. Downloads and installation remain manual. See [UPDATES.md](UPDATES.md) for publishing instructions and [BATTERY-TEST.md](BATTERY-TEST.md) for the verified idle result and battery measurement procedure.
+
 Local builds are hardened but ad-hoc signed and must not be distributed. A public release requires a **Developer ID Application** certificate and an Apple notarization profile:
 
 ```sh

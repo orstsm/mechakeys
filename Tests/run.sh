@@ -8,6 +8,8 @@ xcrun swiftc -module-cache-path "$TEST_DIR/cache" ShelfModel.swift Tests/HoverSt
 "$TEST_DIR/hover"
 xcrun swiftc -module-cache-path "$TEST_DIR/cache" GlobalKeyboardMonitor.swift KeyboardAudioEngine.swift InputAudioController.swift Tests/AudioLifecycleTests.swift -o "$TEST_DIR/audio"
 "$TEST_DIR/audio"
+xcrun swiftc -module-cache-path "$TEST_DIR/cache" UpdateChecker.swift Tests/UpdateTests.swift -o "$TEST_DIR/updates"
+"$TEST_DIR/updates"
 xcrun swiftc -typecheck -module-cache-path "$TEST_DIR/cache" Tests/InstallApp.swift
 zsh -n build.sh install.sh package-local.sh release.sh
 plutil -lint Info.plist PrivacyInfo.xcprivacy

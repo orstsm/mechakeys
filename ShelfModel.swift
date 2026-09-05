@@ -10,7 +10,7 @@ enum ShelfPage {
     var expandedSize: CGSize {
         switch self {
         case .controls: return CGSize(width: 420, height: 300)
-        case .settings: return CGSize(width: 420, height: 320)
+        case .settings: return CGSize(width: 420, height: 460)
         case .about: return CGSize(width: 440, height: 400)
         }
     }

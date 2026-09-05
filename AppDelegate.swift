@@ -4,6 +4,7 @@ import Combine
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+    let updateChecker = UpdateChecker(currentVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")
     var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development" }
     @Published private(set) var soundEnabled: Bool
     @Published private(set) var bluetoothAudioConnected = false
@@ -66,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        updateChecker.start()
         LaunchAtLoginManager.hardenExistingRegistration()
         refreshLaunchAtLoginStatus()
 
@@ -127,6 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        updateChecker.stop()
         shelfModel?.stop()
         notchWindowController?.stop()
         keyboardMonitor?.stop()

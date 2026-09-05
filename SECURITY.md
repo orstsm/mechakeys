@@ -8,13 +8,16 @@ The audio input tap is removed when sounds are off. Mouse movement observation r
 
 ## Data and network
 
-The app contains no networking client and collects no analytics. It stores only these local preferences in `UserDefaults`:
+Sound playback works offline and collects no analytics. Manual update checks, or optional daily checks (off by default), request public release metadata from `api.github.com/repos/orstsm/mechakeys/releases/latest`. GitHub receives the connecting IP address and a generic app User-Agent, but no typed text, key codes, pointer positions, sound settings, account tokens, or persistent app-generated identifier. Checks use an ephemeral session without cookies or disk caching, with timeouts, a 1 MiB response limit, and no redirects. Release links must use HTTPS and the expected repository on github.com. Opening a release uses the user's browser and its normal privacy settings. Nothing is automatically downloaded or installed.
+
+Local preferences in `UserDefaults` include:
 
 - sounds enabled
 - volume
 - selected switch profile
 - whether the Input Monitoring prompt has been shown
 - optional menu-bar icon and notch visibility/recovery preferences
+- daily-update opt-in and last update-attempt time
 
 The included privacy manifest declares no tracking or collected data.
 
