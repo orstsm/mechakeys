@@ -25,7 +25,7 @@ MechaKeys reads CoreAudio's local device list to determine whether an available 
 
 ## Runtime security
 
-Release builds must use a Developer ID Application certificate, hardened runtime, a secure timestamp, and Apple notarization. The release script refuses to run without a signing identity and notary keychain profile. No hardened-runtime exceptions are requested.
+The optional notarized release path uses a Developer ID Application certificate, hardened runtime, a secure timestamp, and Apple notarization. `release.sh` refuses to run without a signing identity and notary keychain profile. The community workflow instead uses ad-hoc signing with hardened runtime. No hardened-runtime exceptions are requested.
 
 Community builds are ad-hoc signed and are not notarized by Apple. Shared community releases must prominently disclose that limitation. macOS may block opening them or require explicit per-app approval; users must not disable Gatekeeper or other system-wide security protections.
 
@@ -33,4 +33,4 @@ Community builds are ad-hoc signed and are not notarized by Apple. Shared commun
 
 When installed in `/Applications` or the user's `Applications` folder, MechaKeys uses Apple's `SMAppService.mainApp`. Legacy LaunchAgents are retained until migration is approved, then removed. Development copies elsewhere use a user-owned LaunchAgent with mode `0600`, launching the app through `/usr/bin/open` without a shell or elevated privileges.
 
-Building and packaging never replace an installed application. The separate installer verifies a staged bundle, refuses to replace a running app, and uses a same-volume atomic exchange with a preserved rollback copy. Ad-hoc builds remain for personal testing, not public distribution.
+Building and packaging never replace an installed application. The separate installer verifies a staged bundle, refuses to replace a running app, and uses a same-volume atomic exchange with a preserved rollback copy. Shared ad-hoc builds must disclose their community status without implying Apple notarization or verified developer identity.

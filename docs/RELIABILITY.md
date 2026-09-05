@@ -1,4 +1,4 @@
-# 2.10.1 reliability design and verification
+# Reliability design and verification
 
 ## Hover
 
@@ -21,9 +21,9 @@ AppKit event observers are asynchronous: https://developer.apple.com/library/arc
 
 ## Installation and releases
 
-Builds and packaging have no installation side effects. The explicit installer verifies a staged bundle, refuses replacement while MechaKeys is running, and atomically exchanges bundles on the same volume. The previous app is retained inside a hidden `.noindex` directory with a non-app backup suffix. Local builds are still ad-hoc signed. Public releases require the developer's signing identity and notarization credentials; these cannot be manufactured by the build script.
+Builds and packaging have no installation side effects. The explicit installer verifies a staged bundle, refuses replacement while MechaKeys is running, and atomically exchanges bundles on the same volume. The previous app is retained inside a hidden `.noindex` directory with a non-app backup suffix. Local builds are still ad-hoc signed. Community releases disclose their lack of notarization. Optional notarized builds require the developer's own signing and notarization credentials.
 
-## Verification performed
+## Historical verification — 2.10.1
 
 - Hover-model tests: immediate first entry, canceled close, 100 repeated cycles, manual reopening, explicit-close rearming, visibility.
 - Audio tests with a controlled engine: latest-key wake coalescing, wake mouse discard, idle suspension, cancellation during wake, failure notification.
@@ -34,10 +34,10 @@ Builds and packaging have no installation side effects. The explicit installer v
 
 ## Still requires live acceptance
 
-Input Monitoring was invalidated by the local signature replacement. The user must reauthorize the final installed app. Do not change that security setting automatically.
+Input Monitoring may be invalidated by a signature replacement. The user may need to reauthorize the installed app. Do not change that security setting automatically.
 
 Ordinary hardware-notch hover, long idle/re-entry, Bluetooth route transitions, login approval/migration across logout, full-screen/multiple displays, and battery A/B testing remain manual acceptance tests. Model tests cannot prove real pointer delivery or speaker latency. No new battery savings percentage is claimed.
 
-User acceptance update: Bluetooth pause/resume was confirmed working after installation. The user started an unplugged battery check; no controlled battery result is available yet.
+User acceptance update: Bluetooth pause/resume was confirmed working after installation. An unplugged idle check confirmed release of the audio sleep assertion; see [battery testing](BATTERY-TEST.md). Long-duration battery A/B testing remains outstanding.
 
-The CI workflow has been added locally but has not run on GitHub. Changes are not committed or pushed. Ensure new source/test/workflow files are included when committing. Developer ID/notarization remains an external prerequisite for release-quality distribution and stable upgrade testing.
+CI runs regression tests and universal builds. The separate version-tag workflow publishes community downloads; see [publishing updates](UPDATES.md). Check the actual GitHub Actions run for hosted results rather than treating local verification as proof that a release was published.

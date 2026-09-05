@@ -1,70 +1,68 @@
 # MechaKeys
 
-A lightweight native macOS notch app that plays low-latency mechanical sounds for global key presses and mouse clicks, with optional menu-bar controls.
+Mechanical keyboard and mouse sounds for macOS, controlled from your MacBook's notch.
 
-MechaKeys includes three sound profiles inspired by modern mechanical keyboards:
+Hover over the notch to turn sounds on or off, choose a profile, change volume, or open settings. MechaKeys is a standalone app: **NotchShelf and boringNotch are not required**. An optional menu-bar icon provides another way to reach the controls.
 
-- **Default** — four natural variations extracted from the app owner's recorded keycap click
-- **K Pro Red** — ten natural regular-key variations, four distinct Space variations, and the original mouse-click recording supplied by the app owner
-- **Alpaca** — recorded mouse, regular-key, Delete/Backspace, and Space variations supplied by the app owner
+## Download and install
 
-MechaKeys lives natively in your MacBook notch. Hover over the physical notch anytime to expand the control center, adjust volume, switch sound profiles, play a test sound, or mute playback. Your choices are remembered between launches. If desired, you can also toggle an optional menu-bar icon from the settings.
+Open [GitHub Releases](https://github.com/orstsm/mechakeys/releases) and download the versioned **universal-community.zip** app asset. Unzip it and move **MechaKeys.app** to Applications. GitHub's automatic “Source code” ZIP is for developers, not an installer. If no release is listed, a downloadable build has not been published yet.
 
-When a Bluetooth headset, earphone, or speaker connects, MechaKeys pauses automatically. It resumes after the last connected Bluetooth audio output disconnects, provided sounds were manually enabled beforehand. Bluetooth keyboards, mice, and other non-audio accessories are ignored. Audio-route changes are debounced and rebuild the audio engine so connecting or disconnecting devices cannot leave playback stuck.
+- **Requirements:** macOS 13 or newer; Apple Silicon or Intel Mac. The notch interface is designed for MacBooks with a physical notch.
+- **Permission:** enable MechaKeys in System Settings → Privacy & Security → Input Monitoring for keyboard and mouse sounds.
+- **Community build:** ad-hoc signed and **not notarized by Apple**. macOS may block opening or require explicit per-app approval. Only install if you trust the project; never disable Gatekeeper or other system-wide protections. Updates may require Input Monitoring approval again.
 
-Enable **Launch at Login** in the MechaKeys panel to start it automatically after restarting your Mac. Turn sounds off from the panel instead of quitting the app when you want silence.
+See [installation and troubleshooting](INSTALL.md). Downloaded builds do not require Xcode or developer tools.
 
-## Energy behavior
+## Features
 
-MechaKeys keeps its audio engine warm for 30 seconds after input, then stops it completely. During a cold wake, keyboard events are coalesced so only the newest key can sound after audio becomes ready; mouse clicks during the wake are discarded. Warm input events older than 25 milliseconds are dropped instead of being played late. Turning sounds off removes the global input monitor and stops the audio engine immediately. Permission polling also stops as soon as access is granted.
+- **Notch controls:** event-driven hover, sound toggle, profile selection, volume, test playback, About, settings and Quit.
+- **Recorded profiles:** Default, K Pro Red and Alpaca, with sample variations to reduce repetition.
+- **Special sounds:** K Pro Red includes regular-key, Space and mouse samples; Alpaca additionally includes Delete/Backspace samples. Default shares four recorded variations across inputs.
+- **Spatial panning:** left and right keyboard regions subtly pan toward the corresponding speaker.
+- **Bluetooth audio pause:** pauses for connected Bluetooth audio devices and resumes when they disconnect, provided sounds were manually enabled. Bluetooth mice and keyboards do not trigger this pause.
+- **Low-latency playback:** preloaded sounds, overlapping playback and stale-event dropping. Audio stops after 30 seconds without input; cold wake retains only the newest key and discards delayed mouse clicks.
+- **Convenience:** launch at login, remembered preferences and optional menu-bar access.
+- **Update checks:** Settings → Check for Updates, plus optional daily checks (off by default). Downloads and installation remain manual.
 
-## Releases
+## Privacy and energy use
 
-To publish a community app download from **GitHub Desktop**, commit/push the update, then create and push its version tag from History (for example `v2.11.1`). The included GitHub Actions workflow tests, builds and publishes the universal ZIP. Ordinary commits do not publish releases. Follow [UPDATES.md](UPDATES.md) for the complete checklist and failure recovery.
+Playback works offline. MechaKeys observes physical key/button events to play sounds; it does not record typed text, collect analytics, or upload input data. Optional update checks contact GitHub for public release information. See [security and privacy](SECURITY.md).
 
-Version 2.11.0 adds **Settings → Check for Updates** and opt-in daily checks. Checks read public GitHub release metadata; playback still works offline. Downloads and installation remain manual. See [UPDATES.md](UPDATES.md) for publishing instructions and [BATTERY-TEST.md](BATTERY-TEST.md) for the verified idle result and battery measurement procedure.
+Hover has no repeating pointer-polling timer, and audio suspends after 30 seconds of inactivity. An idle test confirmed release of the audio sleep assertion, but **no app-specific battery-drain percentage has been established**. See [battery measurements and test procedure](docs/BATTERY-TEST.md).
 
-Community builds are hardened but ad-hoc signed and **not notarized by Apple**. They may be shared with that warning, but macOS may block first launch or require explicit approval. Do not ask users to disable system security. A Developer ID-signed, notarized release requires a **Developer ID Application** certificate and an Apple notarization profile:
+## Build from source
 
-```sh
-export MECHAKEYS_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)"
-export MECHAKEYS_NOTARY_PROFILE="mechakeys-notary"
-./release.sh
-```
-
-The release script signs with hardened runtime and a secure timestamp, submits the app to Apple's notary service, staples and validates the ticket, verifies Gatekeeper acceptance, and produces the final ZIP in `dist/`.
-
-## Requirements
-
-- macOS 13 or newer
-- Xcode Command Line Tools
-
-The default build is universal and supports both Apple Silicon and Intel Macs.
-
-## Build and run
+Install Xcode Command Line Tools, then run these commands from the repository folder:
 
 ```sh
 zsh Tests/run.sh
 zsh build.sh --build-only
-# Quit any running MechaKeys before installing.
+# Quit MechaKeys before installing the new build.
 zsh install.sh
-open "$HOME/Applications/MechaKeys.app"
 ```
 
-To create a personal drag-to-Applications DMG and a GitHub-ready source archive:
+Building does not replace your installed app. The explicit installer uses your user Applications folder and preserves the previous version for recovery.
 
-```sh
-./package-local.sh
-```
+## Publish an update from GitHub Desktop
 
-On first launch, allow MechaKeys in **System Settings → Privacy & Security → Input Monitoring**. If it was already open when access was granted, quit and reopen it once. MechaKeys uses a passive event listener: it observes numeric key codes and mouse-button-down types only, and never changes or stores what you type.
+Update the version and release notes, commit/push the changes, then create and push the matching version tag from **History** (for example `v2.11.1`). GitHub Actions tests, builds and publishes the universal community ZIP, installation instructions and checksums. Ordinary commits do not publish releases.
 
-The Default and K Pro Red recordings are intended for the app owner's personal use. Confirm that you have redistribution rights before publishing those audio assets in a public repository or release.
+Follow the [release checklist](docs/UPDATES.md), including how to check build failures. No paid Apple Developer account is needed for community releases. The optional `release.sh` supports notarized releases when you have the required Apple credentials.
 
-## Reliability update (2.10.1)
+## Repository guide
 
-Hover is driven by mouse movement with no recurring pointer timer or intentional opening delay. A single cancellable exit deadline handles closing. The audio engine still sleeps after 30 seconds of inactivity; notch detection and audio sleep are separate.
+| Location | Purpose |
+| --- | --- |
+| `Sources/` | Current app code: notch UI, audio, Bluetooth, permissions, updates |
+| `Resources/` | App icons and the 37 active sound recordings |
+| `Tests/` | Regression tests and installation verification utility |
+| `docs/` | Release instructions, reliability notes and battery evidence |
+| `.github/workflows/` | Automated tests and tag-triggered community releases |
+| Root scripts and plists | Build, package, install, identity and privacy configuration |
 
-Run `zsh Tests/run.sh` for regression checks and `zsh build.sh --build-only` to build. Builds no longer install automatically. Quit MechaKeys, then run `zsh install.sh` to install a verified build in your Applications folder while preserving the previous version. Local signatures can still require Input Monitoring reauthorization after replacement. Community releases disclose their lack of notarization; Developer ID signing and notarization are available via `release.sh` when you have the required credentials.
+`.build/` and `dist/` are local generated output, ignored by Git—not files users need to commit. Release downloads belong in GitHub Releases, not in the source tree.
 
-See [RELIABILITY.md](RELIABILITY.md) for the design, test coverage, and remaining acceptance checks. Build products are ignored by Git; attach packaged installers to GitHub Releases rather than committing them as source.
+Before redistributing the recordings, confirm that you have the necessary rights to all bundled audio and artwork.
+
+Built by **orstsm**.

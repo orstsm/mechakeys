@@ -1,6 +1,7 @@
 .DS_Store
 .build/
 MechaKeys.app/
+*.app.disabled/
 dist/
 *.dmg
 *.zip

@@ -45,18 +45,7 @@ for arch in "${ARCHS[@]}"; do
         -framework QuartzCore \
         -framework ServiceManagement \
         -framework SwiftUI \
-        "$PROJECT_DIR/MechaKeysApp.swift" \
-        "$PROJECT_DIR/AppDelegate.swift" \
-        "$PROJECT_DIR/UpdateChecker.swift" \
-        "$PROJECT_DIR/UpdateSettingsView.swift" \
-        "$PROJECT_DIR/ShelfModel.swift" \
-        "$PROJECT_DIR/NotchWindowController.swift" \
-        "$PROJECT_DIR/NotchView.swift" \
-        "$PROJECT_DIR/GlobalKeyboardMonitor.swift" \
-        "$PROJECT_DIR/KeyboardAudioEngine.swift" \
-        "$PROJECT_DIR/InputAudioController.swift" \
-        "$PROJECT_DIR/BluetoothAudioMonitor.swift" \
-        "$PROJECT_DIR/LaunchAtLoginManager.swift" \
+        "$PROJECT_DIR"/Sources/*.swift \
         -o "$ARCH_BUILD_DIR/MechaKeys"
 done
 
