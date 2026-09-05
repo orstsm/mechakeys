@@ -1,6 +1,6 @@
 # Install MechaKeys
 
-## Personal build
+## Community build — not notarized by Apple
 
 This universal build supports Apple Silicon and Intel Macs running macOS 13 or newer.
 
@@ -12,7 +12,7 @@ This universal build supports Apple Silicon and Intel Macs running macOS 13 or n
 6. Quit and reopen MechaKeys once if macOS requests it.
 7. Enable **Launch at Login** if desired.
 
-The personal build is ad-hoc signed. Only install it on Macs you control and only when it came from your own trusted GitHub repository. A seamless public download requires a Developer ID Application certificate and Apple notarization.
+This community build is ad-hoc signed, not Developer ID-signed or notarized by Apple. Install only if you trust this project and its source. macOS may block first launch; use the per-app approval offered in System Settings → Privacy & Security only after verifying the download source. Never disable Gatekeeper or other system-wide security protections. Managed Macs may not permit installation. Updates can require Input Monitoring approval again. Developer ID signing and notarization are not provided by this release.
 
 ## GitHub
 

@@ -27,7 +27,7 @@ MechaKeys reads CoreAudio's local device list to determine whether an available 
 
 Release builds must use a Developer ID Application certificate, hardened runtime, a secure timestamp, and Apple notarization. The release script refuses to run without a signing identity and notary keychain profile. No hardened-runtime exceptions are requested.
 
-Local builds are ad-hoc signed and are for development on one Mac only. They must not be distributed.
+Community builds are ad-hoc signed and are not notarized by Apple. Shared community releases must prominently disclose that limitation. macOS may block opening them or require explicit per-app approval; users must not disable Gatekeeper or other system-wide security protections.
 
 ## Launch at login
 

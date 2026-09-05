@@ -1,0 +1,49 @@
+name: Publish community release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: community-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'orstsm/mechakeys'
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate version and release notes
+        run: zsh package-community.sh "$GITHUB_REF_NAME" --validate-only
+      - name: Run regression tests
+        run: zsh Tests/run.sh
+      - name: Build and verify universal community app
+        run: zsh package-community.sh "$GITHUB_REF_NAME"
+      - name: Publish download and installation instructions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          # No overwrite/clobber: an existing release fails safely on reruns.
+          # gh uploads assets to a draft before publishing the complete release.
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/MechaKeys-$version-universal-community.zip" \
+            dist/INSTALL.md dist/SHA256SUMS.txt \
+            --verify-tag \
+            --title "MechaKeys $version — community build" \
+            --notes-file dist/community-release-notes.md

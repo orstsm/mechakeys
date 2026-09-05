@@ -18,11 +18,13 @@ Enable **Launch at Login** in the MechaKeys panel to start it automatically afte
 
 MechaKeys keeps its audio engine warm for 30 seconds after input, then stops it completely. During a cold wake, keyboard events are coalesced so only the newest key can sound after audio becomes ready; mouse clicks during the wake are discarded. Warm input events older than 25 milliseconds are dropped instead of being played late. Turning sounds off removes the global input monitor and stops the audio engine immediately. Permission polling also stops as soon as access is granted.
 
-## Production releases
+## Releases
+
+To publish a community app download from **GitHub Desktop**, commit/push the update, then create and push its version tag from History (for example `v2.11.1`). The included GitHub Actions workflow tests, builds and publishes the universal ZIP. Ordinary commits do not publish releases. Follow [UPDATES.md](UPDATES.md) for the complete checklist and failure recovery.
 
 Version 2.11.0 adds **Settings → Check for Updates** and opt-in daily checks. Checks read public GitHub release metadata; playback still works offline. Downloads and installation remain manual. See [UPDATES.md](UPDATES.md) for publishing instructions and [BATTERY-TEST.md](BATTERY-TEST.md) for the verified idle result and battery measurement procedure.
 
-Local builds are hardened but ad-hoc signed and must not be distributed. A public release requires a **Developer ID Application** certificate and an Apple notarization profile:
+Community builds are hardened but ad-hoc signed and **not notarized by Apple**. They may be shared with that warning, but macOS may block first launch or require explicit approval. Do not ask users to disable system security. A Developer ID-signed, notarized release requires a **Developer ID Application** certificate and an Apple notarization profile:
 
 ```sh
 export MECHAKEYS_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)"
@@ -63,6 +65,6 @@ The Default and K Pro Red recordings are intended for the app owner's personal u
 
 Hover is driven by mouse movement with no recurring pointer timer or intentional opening delay. A single cancellable exit deadline handles closing. The audio engine still sleeps after 30 seconds of inactivity; notch detection and audio sleep are separate.
 
-Run `zsh Tests/run.sh` for regression checks and `zsh build.sh --build-only` to build. Builds no longer install automatically. Quit MechaKeys, then run `zsh install.sh` to install a verified build in your Applications folder while preserving the previous version. Local signatures can still require Input Monitoring reauthorization after replacement. Public releases require Developer ID signing and notarization via `release.sh`.
+Run `zsh Tests/run.sh` for regression checks and `zsh build.sh --build-only` to build. Builds no longer install automatically. Quit MechaKeys, then run `zsh install.sh` to install a verified build in your Applications folder while preserving the previous version. Local signatures can still require Input Monitoring reauthorization after replacement. Community releases disclose their lack of notarization; Developer ID signing and notarization are available via `release.sh` when you have the required credentials.
 
 See [RELIABILITY.md](RELIABILITY.md) for the design, test coverage, and remaining acceptance checks. Build products are ignored by Git; attach packaged installers to GitHub Releases rather than committing them as source.

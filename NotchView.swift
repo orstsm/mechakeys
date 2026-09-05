@@ -377,6 +377,16 @@ struct NotchView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 11) {
                     featureRow(
+                        icon: "info.circle.fill",
+                        title: "Community build — not notarized",
+                        description: "Free community software, locally signed and not notarized by Apple. macOS may require approval before opening and Input Monitoring permission after updates. Never disable Gatekeeper to run this app."
+                    )
+                    featureRow(
+                        icon: "arrow.down.circle",
+                        title: "Optional update checks",
+                        description: "Use Settings → Check for Updates, or enable daily checks. Checks contact GitHub and show public releases. Downloads and installation stay manual; daily checks are off by default."
+                    )
+                    featureRow(
                         icon: "bolt.fill",
                         title: "Low-latency playback",
                         description: "Preloaded 48 kHz sounds, a warm audio engine, polyphonic playback, and stale-event dropping keep sound aligned with input."
@@ -389,7 +399,7 @@ struct NotchView: View {
                     featureRow(
                         icon: "delete.left.fill",
                         title: "Special-key sounds",
-                        description: "Profiles provide distinct regular-key, Space, Delete/Backspace, and mouse-click recordings."
+                        description: "K Pro Red separates regular keys, Space, and mouse clicks. Alpaca also has distinct Delete/Backspace sounds. Default uses shared click variations."
                     )
                     featureRow(
                         icon: "hifispeaker.2.fill",
@@ -408,8 +418,8 @@ struct NotchView: View {
                     )
                     featureRow(
                         icon: "leaf.fill",
-                        title: "Energy efficient",
-                        description: "The audio engine sleeps after 30 seconds of inactivity and wakes without replaying a backlog of missed input."
+                        title: "Idle-aware audio and hover",
+                        description: "Audio sleeps after 30 seconds without input; wake-up never replays a backlog. Hover uses mouse events instead of continuous polling. Battery impact varies with usage."
                     )
                     featureRow(
                         icon: "display",

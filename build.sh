@@ -73,7 +73,7 @@ SIGNING_IDENTITY="${MECHAKEYS_SIGNING_IDENTITY:--}"
 xattr -cr "$APP_DIR"
 
 if [[ "$SIGNING_IDENTITY" == "-" ]]; then
-    echo "Warning: building a local ad-hoc signed app. Do not distribute this build."
+    echo "Warning: ad-hoc community build, NOT notarized by Apple. Disclose this when sharing."
     codesign \
         --force \
         --deep \

@@ -11,5 +11,13 @@ xcrun swiftc -module-cache-path "$TEST_DIR/cache" GlobalKeyboardMonitor.swift Ke
 xcrun swiftc -module-cache-path "$TEST_DIR/cache" UpdateChecker.swift Tests/UpdateTests.swift -o "$TEST_DIR/updates"
 "$TEST_DIR/updates"
 xcrun swiftc -typecheck -module-cache-path "$TEST_DIR/cache" Tests/InstallApp.swift
-zsh -n build.sh install.sh package-local.sh release.sh
+zsh -n build.sh install.sh package-local.sh package-community.sh release.sh
+VERSION="$(plutil -extract CFBundleShortVersionString raw Info.plist)"
+zsh package-community.sh "v$VERSION" --validate-only
+for INVALID_TAG in v0.0.0 v2.11.1-beta invalid; do
+    if zsh package-community.sh "$INVALID_TAG" --validate-only; then
+        echo "Invalid release tag was accepted: $INVALID_TAG" >&2
+        exit 1
+    fi
+done
 plutil -lint Info.plist PrivacyInfo.xcprivacy
