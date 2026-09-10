@@ -3,12 +3,15 @@ import Foundation
 final class FakeEngine: InputAudioEngine {
     var volume: Float = 0
     var profile: KeyboardSoundProfile = .standard
+    var pitchVariationEnabled = true
     let entered = DispatchSemaphore(value: 0)
     let release = DispatchSemaphore(value: 0)
     var blockStart = false
     var failStart = false
     private let lock = NSLock()
     private var played: [UInt16] = []
+    private var actions: [KeyPlaybackAction] = []
+    private var intensities: [Float] = []
     private var mice = 0
     private var sleeps = 0
     func start() throws {
@@ -16,18 +19,33 @@ final class FakeEngine: InputAudioEngine {
         if blockStart { release.wait() }
         if failStart { throw NSError(domain: "test", code: 1) }
     }
-    func playKeyboard(keyCode: UInt16) { lock.lock(); played.append(keyCode); lock.unlock() }
+    func playKeyboard(keyCode: UInt16, action: KeyPlaybackAction, intensity: Float) {
+        lock.lock()
+        played.append(keyCode)
+        actions.append(action)
+        intensities.append(intensity)
+        lock.unlock()
+    }
     func playMouse(button: Int64) { lock.lock(); mice += 1; lock.unlock() }
+    func loadCustomSoundPack(_ pack: CustomSoundPack?) throws {}
     func suspend() { lock.lock(); sleeps += 1; lock.unlock() }
     func stop() { suspend() }
     var snapshot: ([UInt16], Int, Int) {
         lock.lock(); defer { lock.unlock() }; return (played, mice, sleeps)
+    }
+    var playbackSnapshot: ([KeyPlaybackAction], [Float]) {
+        lock.lock(); defer { lock.unlock() }; return (actions, intensities)
     }
 }
 
 @main
 struct AudioLifecycleTests {
     static func main() {
+        precondition(PlaybackPolicy.shouldEnable(userEnabled: true, bluetoothAudioConnected: false, muteDuringCalls: true, microphoneActive: false))
+        precondition(!PlaybackPolicy.shouldEnable(userEnabled: true, bluetoothAudioConnected: true, muteDuringCalls: false, microphoneActive: false))
+        precondition(!PlaybackPolicy.shouldEnable(userEnabled: true, bluetoothAudioConnected: false, muteDuringCalls: true, microphoneActive: true))
+        precondition(PlaybackPolicy.shouldEnable(userEnabled: true, bluetoothAudioConnected: false, muteDuringCalls: false, microphoneActive: true))
+
         let engine = FakeEngine()
         engine.blockStart = true
         let controller = InputAudioController(engine: engine, volume: 0.5, profile: .red, idleTimeout: 0.05)
@@ -62,6 +80,27 @@ struct AudioLifecycleTests {
         third.warm()
         precondition(failure.wait(timeout: .now() + 2) == .success, "Audio failure must reach UI observer")
         third.stopSynchronously()
-        print("PASS: wake coalescing, discarded mouse clicks, idle suspend, canceled wake, error reporting")
+
+        let dynamicsEngine = FakeEngine()
+        let dynamics = InputAudioController(
+            engine: dynamicsEngine,
+            volume: 0.5,
+            profile: .standard,
+            idleTimeout: 30
+        )
+        dynamics.setReleaseSoundsEnabled(true)
+        dynamics.warm()
+        precondition(dynamicsEngine.entered.wait(timeout: .now() + 2) == .success)
+        Thread.sleep(forTimeInterval: 0.03)
+        dynamics.handle(.keyDown(1))
+        Thread.sleep(forTimeInterval: 0.02)
+        dynamics.handle(.keyDown(2))
+        dynamics.handle(.keyUp(2))
+        Thread.sleep(forTimeInterval: 0.05)
+        let playback = dynamicsEngine.playbackSnapshot
+        precondition(playback.0.contains(where: { $0 == .up }), "Enabled release sounds must reach the engine")
+        precondition(playback.1.contains(where: { $0 > 1 }), "Fast typing should receive subtle dynamics")
+        dynamics.stopSynchronously()
+        print("PASS: wake coalescing, stale protection, idle suspend, release sounds, typing dynamics")
     }
 }

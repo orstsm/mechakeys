@@ -3,6 +3,7 @@ import Foundation
 
 enum GlobalInputEvent {
     case keyDown(UInt16)
+    case keyUp(UInt16)
     case mouseDown(Int64)
 }
 
@@ -10,6 +11,8 @@ final class GlobalKeyboardMonitor {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private let onInput: (GlobalInputEvent) -> Void
+    var suppressKeyRepeat = true
+    private var repeatFilter = KeyRepeatFilter()
 
     init(onInput: @escaping (GlobalInputEvent) -> Void) {
         self.onInput = onInput
@@ -20,6 +23,7 @@ final class GlobalKeyboardMonitor {
 
         let monitoredTypes: [CGEventType] = [
             .keyDown,
+            .keyUp,
             .leftMouseDown,
             .rightMouseDown,
             .otherMouseDown,
@@ -61,10 +65,12 @@ final class GlobalKeyboardMonitor {
         }
         runLoopSource = nil
         eventTap = nil
+        repeatFilter.reset()
     }
 
-    fileprivate func handle(type: CGEventType, event: CGEvent) {
+    func handle(type: CGEventType, event: CGEvent) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            repeatFilter.reset()
             if let eventTap {
                 CGEvent.tapEnable(tap: eventTap, enable: true)
             }
@@ -74,7 +80,21 @@ final class GlobalKeyboardMonitor {
         switch type {
         case .keyDown:
             let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+            let isAutoRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+            if !repeatFilter.shouldAcceptKeyDown(
+                keyCode,
+                isAutoRepeat: isAutoRepeat,
+                suppressionEnabled: suppressKeyRepeat
+            ) {
+                return
+            }
             onInput(.keyDown(keyCode))
+        case .keyUp:
+            let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+            let wasPressed = repeatFilter.handleKeyUp(keyCode)
+            if wasPressed {
+                onInput(.keyUp(keyCode))
+            }
         case .leftMouseDown, .rightMouseDown, .otherMouseDown:
             let button = event.getIntegerValueField(.mouseEventButtonNumber)
             onInput(.mouseDown(button))
@@ -85,6 +105,30 @@ final class GlobalKeyboardMonitor {
 
     deinit {
         stop()
+    }
+}
+
+struct KeyRepeatFilter {
+    private var pressedKeys = Set<UInt16>()
+
+    mutating func shouldAcceptKeyDown(
+        _ keyCode: UInt16,
+        isAutoRepeat: Bool,
+        suppressionEnabled: Bool
+    ) -> Bool {
+        if suppressionEnabled && (isAutoRepeat || pressedKeys.contains(keyCode)) {
+            return false
+        }
+        pressedKeys.insert(keyCode)
+        return true
+    }
+
+    mutating func handleKeyUp(_ keyCode: UInt16) -> Bool {
+        pressedKeys.remove(keyCode) != nil
+    }
+
+    mutating func reset() {
+        pressedKeys.removeAll()
     }
 }
 

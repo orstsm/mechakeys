@@ -1,12 +1,27 @@
 import Foundation
 
+struct PlaybackPolicy {
+    static func shouldEnable(
+        userEnabled: Bool,
+        bluetoothAudioConnected: Bool,
+        muteDuringCalls: Bool,
+        microphoneActive: Bool
+    ) -> Bool {
+        userEnabled
+            && !bluetoothAudioConnected
+            && !(muteDuringCalls && microphoneActive)
+    }
+}
+
 protocol InputAudioEngine: AnyObject {
     var volume: Float { get set }
     var profile: KeyboardSoundProfile { get set }
+    var pitchVariationEnabled: Bool { get set }
 
     func start() throws
-    func playKeyboard(keyCode: UInt16)
+    func playKeyboard(keyCode: UInt16, action: KeyPlaybackAction, intensity: Float)
     func playMouse(button: Int64)
+    func loadCustomSoundPack(_ pack: CustomSoundPack?) throws
     func suspend()
     func stop()
 }
@@ -36,6 +51,9 @@ final class InputAudioController {
     private var pendingWakeKey: UInt16?
     private var lastInputNanoseconds = DispatchTime.now().uptimeNanoseconds
     private var wakeStartedNanoseconds = DispatchTime.now().uptimeNanoseconds
+    private var lastWarmKeyDownNanoseconds: UInt64?
+    private var typingDynamicsEnabled = true
+    private var releaseSoundsEnabled = false
     private let idleTimer: DispatchSourceTimer
 
     init(
@@ -158,6 +176,38 @@ final class InputAudioController {
         }
     }
 
+    func setPitchVariationEnabled(_ enabled: Bool) {
+        queue.async { [weak self] in self?.engine.pitchVariationEnabled = enabled }
+    }
+
+    func setTypingDynamicsEnabled(_ enabled: Bool) {
+        stateLock.lock()
+        typingDynamicsEnabled = enabled
+        if !enabled { lastWarmKeyDownNanoseconds = nil }
+        stateLock.unlock()
+    }
+
+    func setReleaseSoundsEnabled(_ enabled: Bool) {
+        stateLock.lock()
+        releaseSoundsEnabled = enabled
+        stateLock.unlock()
+    }
+
+    func setCustomSoundPack(
+        _ pack: CustomSoundPack?,
+        completion: @escaping (Error?) -> Void
+    ) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            do {
+                try self.engine.loadCustomSoundPack(pack)
+                completion(nil)
+            } catch {
+                completion(error)
+            }
+        }
+    }
+
     func suspend() {
         stateLock.lock()
         generation &+= 1
@@ -240,7 +290,7 @@ final class InputAudioController {
         }
 
         if let keyToPlay {
-            engine.playKeyboard(keyCode: keyToPlay)
+            engine.playKeyboard(keyCode: keyToPlay, action: .down, intensity: 1)
         }
         scheduleIdleTimerFromLastInput()
     }
@@ -256,7 +306,18 @@ final class InputAudioController {
         if delay <= maximumWarmEventDelayNanoseconds {
             switch input {
             case .keyDown(let keyCode):
-                engine.playKeyboard(keyCode: keyCode)
+                engine.playKeyboard(
+                    keyCode: keyCode,
+                    action: .down,
+                    intensity: typingIntensity(at: eventTime)
+                )
+            case .keyUp(let keyCode):
+                stateLock.lock()
+                let shouldPlayRelease = releaseSoundsEnabled
+                stateLock.unlock()
+                if shouldPlayRelease {
+                    engine.playKeyboard(keyCode: keyCode, action: .up, intensity: 1)
+                }
             case .mouseDown(let button):
                 engine.playMouse(button: button)
             }
@@ -268,6 +329,22 @@ final class InputAudioController {
             timingLog(String(format: "MechaKeys warm input scheduling delay: %.2f ms", Double(delay) / 1_000_000))
         }
         scheduleIdleTimerFromLastInput()
+    }
+
+    private func typingIntensity(at eventTime: UInt64) -> Float {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard typingDynamicsEnabled else {
+            lastWarmKeyDownNanoseconds = eventTime
+            return 1
+        }
+        defer { lastWarmKeyDownNanoseconds = eventTime }
+        guard let previous = lastWarmKeyDownNanoseconds, eventTime >= previous else { return 1 }
+        let interval = Double(eventTime - previous) / 1_000_000_000
+        if interval <= 0.09 { return 1.08 }
+        if interval >= 0.42 { return 0.96 }
+        let progress = Float((0.42 - interval) / (0.42 - 0.09))
+        return 0.96 + (0.12 * progress)
     }
 
     private func scheduleIdleTimerFromLastInput() {

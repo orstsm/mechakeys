@@ -7,8 +7,8 @@ Version 2.11.0 adds Settings → Check for Updates and an optional daily check. 
 Regular commits and pushes do not publish app downloads. The community release workflow runs only when you push a version tag to `orstsm/mechakeys`.
 
 1. Prepare and test the update. Set `CFBundleShortVersionString` in Info.plist to the new version, increment `CFBundleVersion`, and add `RELEASE-NOTES-MAJOR.MINOR.PATCH.md`. Use a version higher than the previous release. Confirm redistribution rights for all included audio/assets.
-2. In GitHub Desktop, review and commit all intended changes, including the workflow and packaging script. For this update, use **Prepare MechaKeys 2.11.1 community release**. Push origin.
-3. In **History**, right-click that release commit → **Create Tag**, enter `v2.11.1` (use the new version next time), then **Push origin**. This tag is the explicit instruction to publish that exact commit. Do not tag an older commit that lacks the workflow.
+2. In GitHub Desktop, review and commit all intended changes, including the workflow and packaging script. Use a clear summary such as **Prepare MechaKeys 2.12.0 community release**. Push origin.
+3. In **History**, right-click that release commit → **Create Tag**, enter the exact version from `Info.plist` (currently `v2.12.0`), then **Push origin**. This tag is the explicit instruction to publish that exact commit.
 4. GitHub Actions checks the tag/version and release notes, runs tests, builds Apple Silicon + Intel, verifies the signature and ZIP, and publishes a Release with the community app ZIP, installation instructions and SHA-256 checksums. Allow several minutes; pushing a tag alone does not mean the build succeeded.
 5. If needed, **Repository → View on GitHub → Actions** shows progress/errors. Check the Releases page before announcing the download. GitHub may still require website sign-in for troubleshooting or repository settings, but normal release publishing is triggered from Desktop.
 
@@ -16,7 +16,7 @@ No Apple Developer account, personal access token, or signing secret is required
 
 **Community downloads are ad-hoc signed, not Developer ID-signed or Apple-notarized.** Release notes always include this warning. macOS may block opening or require explicit per-app approval and renewed Input Monitoring permission. Never disable Gatekeeper. For a future notarized release, use `release.sh` with your own Developer ID credentials instead.
 
-The workflow will not overwrite an existing release. If publishing fails after creating a draft, inspect that draft and its assets on GitHub before retrying; do not move/reuse a published version tag. Build/test failures before publication leave no downloadable release. For a local packaging check without publishing, run `zsh package-community.sh v2.11.1`.
+The workflow will not overwrite an existing release. If publishing fails after creating a draft, inspect that draft and its assets on GitHub before retrying; do not move/reuse a published version tag. Build/test failures before publication leave no downloadable release. For a local packaging check without publishing, run `zsh package-community.sh v2.12.0`.
 
 The app checker compares numeric versions, ignores drafts/prereleases, and opens the public release page so users can read notes and choose the ZIP. It does not install updates automatically. A failed workflow does not notify app users of a new version.
 

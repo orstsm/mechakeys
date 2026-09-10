@@ -15,6 +15,8 @@ ARCHS=(arm64 x86_64)
 SDK_PATH="$(xcrun --sdk macosx --show-sdk-path)"
 if [[ -d "/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk" ]]; then
     SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk"
+elif [[ -d "/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk" ]]; then
+    SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk"
 fi
 
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$MODULE_CACHE_DIR"

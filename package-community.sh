@@ -21,7 +21,8 @@ fi
 MECHAKEYS_SIGNING_IDENTITY=- zsh build.sh --build-only
 APP_DIR="$PROJECT_DIR/.build/Products/MechaKeys.app"
 codesign --verify --deep --strict "$APP_DIR"
-xcrun lipo "$APP_DIR/Contents/MacOS/MechaKeys" -verify_arch arm64 x86_64
+xcrun lipo "$APP_DIR/Contents/MacOS/MechaKeys" -verify_arch arm64
+xcrun lipo "$APP_DIR/Contents/MacOS/MechaKeys" -verify_arch x86_64
 mkdir -p dist
 ARCHIVE="MechaKeys-$VERSION-universal-community.zip"
 ditto -c -k --keepParent --norsrc --noextattr "$APP_DIR" "dist/$ARCHIVE"

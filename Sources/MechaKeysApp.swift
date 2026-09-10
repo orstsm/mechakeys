@@ -62,6 +62,10 @@ private struct MechaKeysPanel: View {
                     Label("Bluetooth Paused", systemImage: "speaker.slash.circle.fill")
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.orange)
+                } else if appDelegate.callMuteActive {
+                    Label("Microphone Paused", systemImage: "mic.slash.circle.fill")
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.orange)
                 } else {
                     Label(
                         appDelegate.soundEnabled ? "Sounds On" : "Sounds Off",
@@ -76,23 +80,23 @@ private struct MechaKeysPanel: View {
                 appDelegate.toggleSounds()
             } label: {
                 Label(
-                    appDelegate.bluetoothAudioConnected
-                        ? "Paused for Bluetooth Audio"
-                        : (appDelegate.soundEnabled ? "Turn Sounds Off" : "Turn Sounds On"),
-                    systemImage: appDelegate.bluetoothAudioConnected
-                        ? "speaker.slash.fill"
-                        : (appDelegate.soundEnabled ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    primaryButtonTitle,
+                    systemImage: primaryButtonIcon
                 )
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 5)
             }
             .buttonStyle(.borderedProminent)
-            .tint(appDelegate.bluetoothAudioConnected ? .orange : (appDelegate.soundEnabled ? .red : .green))
+            .tint((appDelegate.bluetoothAudioConnected || appDelegate.callMuteActive) ? .orange : (appDelegate.soundEnabled ? .red : .green))
             .controlSize(.large)
-            .disabled(appDelegate.bluetoothAudioConnected)
+            .disabled(appDelegate.bluetoothAudioConnected || appDelegate.callMuteActive)
 
             if appDelegate.bluetoothAudioConnected {
                 Text("Sounds resume automatically after all Bluetooth audio devices disconnect.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if appDelegate.callMuteActive {
+                Text("Sounds resume automatically when the microphone is no longer active.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -112,6 +116,22 @@ private struct MechaKeysPanel: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .disabled(!appDelegate.soundEnabled)
+
+                Menu {
+                    ForEach(appDelegate.customSoundPacks) { pack in
+                        Button(pack.name) { appDelegate.selectCustomSoundPack(pack) }
+                    }
+                    if !appDelegate.customSoundPacks.isEmpty { Divider() }
+                    Button("Import Sound Pack…") { appDelegate.importCustomSoundPack() }
+                } label: {
+                    Label(
+                        appDelegate.soundProfile == .custom
+                            ? appDelegate.selectedProfileName
+                            : "Custom Sound Packs",
+                        systemImage: "waveform.badge.plus"
+                    )
+                }
                 .disabled(!appDelegate.soundEnabled)
             }
 
@@ -211,6 +231,18 @@ private struct MechaKeysPanel: View {
         }
     }
 
+    private var primaryButtonTitle: String {
+        if appDelegate.bluetoothAudioConnected { return "Paused for Bluetooth Audio" }
+        if appDelegate.callMuteActive { return "Paused While Microphone Is Active" }
+        return appDelegate.soundEnabled ? "Turn Sounds Off" : "Turn Sounds On"
+    }
+
+    private var primaryButtonIcon: String {
+        if appDelegate.bluetoothAudioConnected { return "speaker.slash.fill" }
+        if appDelegate.callMuteActive { return "mic.slash.fill" }
+        return appDelegate.soundEnabled ? "speaker.slash.fill" : "speaker.wave.2.fill"
+    }
+
     private var aboutPage: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -266,7 +298,17 @@ private struct MechaKeysPanel: View {
                     featureRow(
                         icon: "keyboard.fill",
                         title: "Recorded sound profiles",
-                        description: "Choose Default, K Pro Red, or Alpaca, with natural variations so repeated keys do not sound identical."
+                        description: "Choose Default, K Pro Red, Alpaca, or validated custom sound packs."
+                    )
+                    featureRow(
+                        icon: "slider.horizontal.3",
+                        title: "Natural dynamics",
+                        description: "Optional pitch variation, typing-speed response, repeat suppression and custom-pack release sounds."
+                    )
+                    featureRow(
+                        icon: "mic.slash.fill",
+                        title: "Microphone-aware",
+                        description: "Optionally pauses while a microphone is active using events instead of continuous polling."
                     )
                     featureRow(
                         icon: "delete.left.fill",

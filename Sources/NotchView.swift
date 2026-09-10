@@ -141,7 +141,7 @@ struct NotchView: View {
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .tint(primaryButtonColor)
-        .disabled(appDelegate.bluetoothAudioConnected)
+        .disabled(appDelegate.bluetoothAudioConnected || appDelegate.callMuteActive)
     }
 
     private var profileButtons: some View {
@@ -157,6 +157,36 @@ struct NotchView: View {
             }
             .padding(3)
             .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 10))
+
+            Menu {
+                ForEach(appDelegate.customSoundPacks) { pack in
+                    Button {
+                        appDelegate.selectCustomSoundPack(pack)
+                    } label: {
+                        if appDelegate.selectedCustomPackID == pack.id {
+                            Label(pack.name, systemImage: "checkmark")
+                        } else {
+                            Text(pack.name)
+                        }
+                    }
+                }
+                if !appDelegate.customSoundPacks.isEmpty { Divider() }
+                Button("Import Sound Pack…", systemImage: "plus") {
+                    appDelegate.importCustomSoundPack()
+                }
+            } label: {
+                Label(
+                    appDelegate.soundProfile == .custom
+                        ? appDelegate.selectedProfileName
+                        : "Custom Sound Packs",
+                    systemImage: "waveform.badge.plus"
+                )
+                .font(.caption.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .frame(height: 24)
+            }
+            .menuStyle(.borderlessButton)
+            .disabled(!appDelegate.soundEnabled)
         }
     }
 
@@ -239,6 +269,9 @@ struct NotchView: View {
             } else if appDelegate.bluetoothAudioConnected {
                 Label("Paused for BT audio", systemImage: "airpodspro")
                     .foregroundStyle(.orange)
+            } else if appDelegate.callMuteActive {
+                Label("Paused while microphone is active", systemImage: "mic.fill")
+                    .foregroundStyle(.orange)
             } else {
                 Text("MechaKeys \(appDelegate.version)")
                     .foregroundStyle(.white.opacity(0.36))
@@ -273,53 +306,94 @@ struct NotchView: View {
                 .buttonStyle(.plain)
             }
 
-            VStack(spacing: 0) {
-                Toggle(
-                    "Launch at Login",
-                    isOn: Binding(
-                        get: { appDelegate.launchAtLogin },
-                        set: { appDelegate.setLaunchAtLogin($0) }
-                    )
-                )
-                .toggleStyle(.switch)
-                .padding(12)
-
-                Divider().overlay(.white.opacity(0.1))
-
-                Toggle(
-                    "Show Menu Bar Icon",
-                    isOn: Binding(
-                        get: { appDelegate.showsMenuBarIcon },
-                        set: { appDelegate.setShowsMenuBarIcon($0) }
-                    )
-                )
-                .toggleStyle(.switch)
-                .padding(12)
-
-                Divider().overlay(.white.opacity(0.1))
-
-                Button {
-                    model.activePage = .about
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundStyle(.red)
-                        Text("About MechaKeys & Features")
-                            .font(.callout.weight(.semibold))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.white.opacity(0.45))
+            ScrollView {
+                VStack(spacing: 12) {
+                    VStack(spacing: 0) {
+                        settingToggle(
+                            "Launch at Login",
+                            value: appDelegate.launchAtLogin,
+                            action: appDelegate.setLaunchAtLogin
+                        )
+                        Divider().overlay(.white.opacity(0.1))
+                        settingToggle(
+                            "Show Menu Bar Icon",
+                            value: appDelegate.showsMenuBarIcon,
+                            action: appDelegate.setShowsMenuBarIcon
+                        )
+                        Divider().overlay(.white.opacity(0.1))
+                        settingToggle(
+                            "Mute while microphone is active",
+                            value: appDelegate.muteDuringCalls,
+                            action: appDelegate.setMuteDuringCalls
+                        )
                     }
-                    .padding(12)
+                    .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 14))
+
+                    VStack(spacing: 0) {
+                        settingToggle(
+                            "Subtle pitch variation",
+                            value: appDelegate.pitchVariationEnabled,
+                            action: appDelegate.setPitchVariationEnabled
+                        )
+                        Divider().overlay(.white.opacity(0.1))
+                        settingToggle(
+                            "Typing-speed dynamics",
+                            value: appDelegate.typingDynamicsEnabled,
+                            action: appDelegate.setTypingDynamicsEnabled
+                        )
+                        Divider().overlay(.white.opacity(0.1))
+                        settingToggle(
+                            "Suppress held-key repeats",
+                            value: appDelegate.suppressKeyRepeat,
+                            action: appDelegate.setSuppressKeyRepeat
+                        )
+                        Divider().overlay(.white.opacity(0.1))
+                        settingToggle(
+                            "Custom-pack release sounds",
+                            value: appDelegate.releaseSoundsEnabled,
+                            action: appDelegate.setReleaseSoundsEnabled
+                        )
+                    }
+                    .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 14))
+
+                    VStack(spacing: 0) {
+                        Button {
+                            appDelegate.importCustomSoundPack()
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "waveform.badge.plus")
+                                    .foregroundStyle(.red)
+                                Text("Import Custom Sound Pack…")
+                                    .font(.callout.weight(.semibold))
+                                Spacer()
+                            }
+                            .padding(12)
+                        }
+                        .buttonStyle(.plain)
+                        Divider().overlay(.white.opacity(0.1))
+                        Button {
+                            model.activePage = .about
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundStyle(.red)
+                                Text("About MechaKeys & Features")
+                                    .font(.callout.weight(.semibold))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.white.opacity(0.45))
+                            }
+                            .padding(12)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 14))
+
+                    UpdateSettingsView(checker: appDelegate.updateChecker)
                 }
-                .buttonStyle(.plain)
+                .padding(.trailing, 4)
             }
-            .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 14))
-
-            UpdateSettingsView(checker: appDelegate.updateChecker)
-
-            Spacer(minLength: 0)
 
             HStack {
                 Text("Version \(appDelegate.version)")
@@ -332,6 +406,16 @@ struct NotchView: View {
                 .buttonStyle(.bordered)
             }
         }
+    }
+
+    private func settingToggle(
+        _ title: String,
+        value: Bool,
+        action: @escaping (Bool) -> Void
+    ) -> some View {
+        Toggle(title, isOn: Binding(get: { value }, set: action))
+            .toggleStyle(.switch)
+            .padding(12)
     }
 
     private var aboutPage: some View {
@@ -394,7 +478,22 @@ struct NotchView: View {
                     featureRow(
                         icon: "keyboard.fill",
                         title: "Recorded sound profiles",
-                        description: "Choose Default, K Pro Red, or Alpaca, with natural variations so repeated keys do not sound identical."
+                        description: "Choose Default, K Pro Red, Alpaca, or a validated custom pack stored in Application Support."
+                    )
+                    featureRow(
+                        icon: "waveform.badge.plus",
+                        title: "Custom sound packs",
+                        description: "Import short WAV, AIFF, CAF, or MP3 recordings for keys, Space, Delete, Enter, mouse clicks, and optional key releases."
+                    )
+                    featureRow(
+                        icon: "slider.horizontal.3",
+                        title: "Natural typing dynamics",
+                        description: "Optional subtle pitch variation and typing-speed dynamics add character while playback stays preloaded and polyphonic."
+                    )
+                    featureRow(
+                        icon: "mic.slash.fill",
+                        title: "Automatic microphone pause",
+                        description: "Optionally pauses sounds while any microphone is active, using Core Audio events instead of continuous polling."
                     )
                     featureRow(
                         icon: "delete.left.fill",
@@ -476,6 +575,9 @@ struct NotchView: View {
         if appDelegate.bluetoothAudioConnected {
             return "Paused for BT Audio"
         }
+        if appDelegate.callMuteActive {
+            return "Paused While Microphone Is Active"
+        }
         return appDelegate.soundEnabled ? "Turn Sounds Off" : "Turn Sounds On"
     }
 
@@ -483,6 +585,7 @@ struct NotchView: View {
         if appDelegate.bluetoothAudioConnected {
             return "speaker.slash.fill"
         }
+        if appDelegate.callMuteActive { return "mic.slash.fill" }
         return appDelegate.soundEnabled ? "speaker.slash.fill" : "speaker.wave.2.fill"
     }
 
@@ -490,11 +593,13 @@ struct NotchView: View {
         if appDelegate.bluetoothAudioConnected {
             return .orange
         }
+        if appDelegate.callMuteActive { return .orange }
         return appDelegate.soundEnabled ? .red : .green
     }
 
     private var statusColor: Color {
         if appDelegate.bluetoothAudioConnected { return .orange }
+        if appDelegate.callMuteActive { return .orange }
         if appDelegate.audioError != nil || (appDelegate.soundEnabled && !appDelegate.hasKeyboardAccess) { return .orange }
         return appDelegate.soundEnabled ? .green : .red
     }

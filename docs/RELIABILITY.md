@@ -15,6 +15,9 @@ AppKit event observers are asynchronous: https://developer.apple.com/library/arc
 - Audio failure reaches observable UI state; the next test/input can retry engine startup.
 - Failed input-tap creation retains retry checks even when permission preflight passes.
 - Bluetooth lifecycle and evaluation state are confined to one queue, with shutdown guards.
+- Microphone activity uses Core Audio property listeners rather than a repeating timer; listeners are removed when the option is off or the app exits.
+- Custom sound packs are validated, staged and revalidated before activation; the selected pack is converted and preloaded on the audio queue.
+- Held-key repeats are filtered until key-up, while optional custom release samples use the same stale-event deadline as press sounds.
 - Non-finite/out-of-range saved volume values are normalized at the model boundary.
 - An unapproved login item is no longer displayed as enabled; migration preserves legacy registration until modern registration succeeds. Disabling removes legacy registration too.
 - Visibility resets to visible on launch intentionally, preserving Finder recovery when no menu icon is enabled.
@@ -23,10 +26,12 @@ AppKit event observers are asynchronous: https://developer.apple.com/library/arc
 
 Builds and packaging have no installation side effects. The explicit installer verifies a staged bundle, refuses replacement while MechaKeys is running, and atomically exchanges bundles on the same volume. The previous app is retained inside a hidden `.noindex` directory with a non-app backup suffix. Local builds are still ad-hoc signed. Community releases disclose their lack of notarization. Optional notarized builds require the developer's own signing and notarization credentials.
 
-## Historical verification — 2.10.1
+## Verification — 2.12.0
 
 - Hover-model tests: immediate first entry, canceled close, 100 repeated cycles, manual reopening, explicit-close rearming, visibility.
-- Audio tests with a controlled engine: latest-key wake coalescing, wake mouse discard, idle suspension, cancellation during wake, failure notification.
+- Audio tests with a controlled engine: latest-key wake coalescing, wake mouse discard, stale protection, idle suspension, cancellation during wake, failure notification, release events and typing dynamics.
+- Input-state tests cover held-key repeat suppression and release tracking.
+- Custom-pack tests create real audio, then validate staging, metadata, release detection and filename mapping.
 - Installer typecheck, shell syntax, plist lint, whitespace checks.
 - Optimized universal Intel/Apple Silicon build and strict bundle signature verification.
 - Atomic installer exercised on this Mac; previous working version retained.

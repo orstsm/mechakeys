@@ -17,11 +17,13 @@ See [installation and troubleshooting](INSTALL.md). Downloaded builds do not req
 ## Features
 
 - **Notch controls:** event-driven hover, sound toggle, profile selection, volume, test playback, About, settings and Quit.
-- **Recorded profiles:** Default, K Pro Red and Alpaca, with sample variations to reduce repetition.
+- **Recorded and custom profiles:** Default, K Pro Red and Alpaca, plus validated user-imported sound packs stored in Application Support.
 - **Special sounds:** K Pro Red includes regular-key, Space and mouse samples; Alpaca additionally includes Delete/Backspace samples. Default shares four recorded variations across inputs.
 - **Spatial panning:** left and right keyboard regions subtly pan toward the corresponding speaker.
 - **Bluetooth audio pause:** pauses for connected Bluetooth audio devices and resumes when they disconnect, provided sounds were manually enabled. Bluetooth mice and keyboards do not trigger this pause.
-- **Low-latency playback:** preloaded sounds, overlapping playback and stale-event dropping. Audio stops after 30 seconds without input; cold wake retains only the newest key and discards delayed mouse clicks.
+- **Natural dynamics:** optional subtle pitch variation, typing-speed response, held-key repeat suppression and custom-pack release sounds.
+- **Call-aware pause:** optionally pauses while a microphone is active using Core Audio property events—no repeating microphone poll.
+- **Low-latency playback:** all active sounds are preloaded into the existing polyphonic engine with stale-event dropping. Audio stops after 30 seconds without input; cold wake retains only the newest key and discards delayed mouse clicks.
 - **Convenience:** launch at login, remembered preferences and optional menu-bar access.
 - **Update checks:** Settings → Check for Updates, plus optional daily checks (off by default). Downloads and installation remain manual.
 
@@ -46,7 +48,7 @@ Building does not replace your installed app. The explicit installer uses your u
 
 ## Publish an update from GitHub Desktop
 
-Update the version and release notes, commit/push the changes, then create and push the matching version tag from **History** (for example `v2.11.1`). GitHub Actions tests, builds and publishes the universal community ZIP, installation instructions and checksums. Ordinary commits do not publish releases.
+Update the version and release notes, commit/push the changes, then create and push the matching version tag from **History** (for example `v2.12.0`). GitHub Actions tests, builds and publishes the universal community ZIP, installation instructions and checksums. Ordinary commits do not publish releases.
 
 Follow the [release checklist](docs/UPDATES.md), including how to check build failures. No paid Apple Developer account is needed for community releases. The optional `release.sh` supports notarized releases when you have the required Apple credentials.
 
@@ -64,5 +66,7 @@ Follow the [release checklist](docs/UPDATES.md), including how to check build fa
 `.build/` and `dist/` are local generated output, ignored by Git—not files users need to commit. Release downloads belong in GitHub Releases, not in the source tree.
 
 Before redistributing the recordings, confirm that you have the necessary rights to all bundled audio and artwork.
+
+Custom pack creators should follow the validated format in [docs/CUSTOM-SOUND-PACKS.md](docs/CUSTOM-SOUND-PACKS.md). Imported packs are limited to short local WAV, AIFF, CAF, or MP3 files; scripts and executable content are never copied.
 
 Built by **orstsm**.
