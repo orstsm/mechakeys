@@ -41,6 +41,11 @@ final class FakeEngine: InputAudioEngine {
 @main
 struct AudioLifecycleTests {
     static func main() {
+        precondition(KeyboardSoundProfile.featuredProfiles == [.standard, .red, .alpaca])
+        precondition(KeyboardSoundProfile.communityProfiles.count == 5)
+        precondition(Set(KeyboardSoundProfile.communityProfiles.compactMap(\.bundledPackFolder)).count == 5)
+        precondition(!KeyboardSoundProfile.communityProfiles.contains(.custom))
+
         precondition(PlaybackPolicy.shouldEnable(userEnabled: true, bluetoothAudioConnected: false, muteDuringCalls: true, microphoneActive: false))
         precondition(!PlaybackPolicy.shouldEnable(userEnabled: true, bluetoothAudioConnected: true, muteDuringCalls: false, microphoneActive: false))
         precondition(!PlaybackPolicy.shouldEnable(userEnabled: true, bluetoothAudioConnected: false, muteDuringCalls: true, microphoneActive: true))

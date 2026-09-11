@@ -5,9 +5,30 @@ enum KeyboardSoundProfile: String, CaseIterable, Identifiable {
     case standard = "Default"
     case red = "K Pro Red"
     case alpaca = "Alpaca"
+    case holyPanda = "Holy Panda"
+    case mxBlue = "MX Blue"
+    case mxBrown = "MX Brown"
+    case nkCream = "NK Cream"
+    case typewriter = "Typewriter"
     case custom = "Custom"
 
     var id: String { rawValue }
+
+    static let featuredProfiles: [KeyboardSoundProfile] = [.standard, .red, .alpaca]
+    static let communityProfiles: [KeyboardSoundProfile] = [
+        .holyPanda, .mxBlue, .mxBrown, .nkCream, .typewriter
+    ]
+
+    var bundledPackFolder: String? {
+        switch self {
+        case .holyPanda: return "holy-panda"
+        case .mxBlue: return "mx-blue"
+        case .mxBrown: return "mx-brown"
+        case .nkCream: return "nk-cream"
+        case .typewriter: return "typewriter"
+        case .standard, .red, .alpaca, .custom: return nil
+        }
+    }
 }
 
 final class KeyboardAudioEngine {
@@ -22,6 +43,7 @@ final class KeyboardAudioEngine {
     private let alpacaKeyBuffers: [AVAudioPCMBuffer]
     private let alpacaDeleteBuffers: [AVAudioPCMBuffer]
     private let alpacaSpaceBuffers: [AVAudioPCMBuffer]
+    private var communityBuffers: [KeyboardSoundProfile: CustomBuffers]
     private var customBuffers = CustomBuffers()
     private let lock = NSLock()
     private var nextPlayerIndex = 0
@@ -37,7 +59,13 @@ final class KeyboardAudioEngine {
     var profile: KeyboardSoundProfile = .standard
     var pitchVariationEnabled = true
 
-    init(polyphony: Int = 8) throws {
+    init(
+        polyphony: Int = 8,
+        resourceURL: URL? = Bundle.main.resourceURL
+    ) throws {
+        guard let resourceURL else {
+            throw AudioEngineError.missingSoundResourcesDirectory
+        }
         guard let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: 48_000,
@@ -48,29 +76,35 @@ final class KeyboardAudioEngine {
         }
 
         defaultBuffers = try (1...4).map {
-            try Self.loadRecordedBuffer(named: "DefaultClick\($0)", format: format)
+            try Self.loadRecordedBuffer(named: "DefaultClick\($0)", resourceURL: resourceURL, format: format)
         }
 
         redKeyBuffers = try (1...10).map {
-            try Self.loadRecordedBuffer(named: "KProRedKey\($0)", format: format)
+            try Self.loadRecordedBuffer(named: "KProRedKey\($0)", resourceURL: resourceURL, format: format)
         }
-        redMouseBuffer = try Self.loadRecordedBuffer(named: "KProRedMouse", format: format)
+        redMouseBuffer = try Self.loadRecordedBuffer(named: "KProRedMouse", resourceURL: resourceURL, format: format)
         redSpaceBuffers = try (1...4).map {
-            try Self.loadRecordedBuffer(named: "KProRedSpace\($0)", format: format)
+            try Self.loadRecordedBuffer(named: "KProRedSpace\($0)", resourceURL: resourceURL, format: format)
         }
 
         alpacaMouseBuffers = try (1...3).map {
-            try Self.loadRecordedBuffer(named: "AlpacaMouse\($0)", format: format)
+            try Self.loadRecordedBuffer(named: "AlpacaMouse\($0)", resourceURL: resourceURL, format: format)
         }
         alpacaKeyBuffers = try (1...5).map {
-            try Self.loadRecordedBuffer(named: "AlpacaKey\($0)", format: format)
+            try Self.loadRecordedBuffer(named: "AlpacaKey\($0)", resourceURL: resourceURL, format: format)
         }
         alpacaDeleteBuffers = try (1...5).map {
-            try Self.loadRecordedBuffer(named: "AlpacaDelete\($0)", format: format)
+            try Self.loadRecordedBuffer(named: "AlpacaDelete\($0)", resourceURL: resourceURL, format: format)
         }
         alpacaSpaceBuffers = try (1...5).map {
-            try Self.loadRecordedBuffer(named: "AlpacaSpace\($0)", format: format)
+            try Self.loadRecordedBuffer(named: "AlpacaSpace\($0)", resourceURL: resourceURL, format: format)
         }
+
+        communityBuffers = try Dictionary(uniqueKeysWithValues:
+            KeyboardSoundProfile.communityProfiles.map { profile in
+                (profile, try Self.loadBundledPack(profile: profile, resourceURL: resourceURL, format: format))
+            }
+        )
 
         players = (0..<polyphony).map { _ in AVAudioPlayerNode() }
         pitchUnits = (0..<polyphony).map { _ in AVAudioUnitVarispeed() }
@@ -106,6 +140,8 @@ final class KeyboardAudioEngine {
             } else {
                 playAlpacaKey(pan: pan(for: keyCode), intensity: intensity)
             }
+        case .holyPanda, .mxBlue, .mxBrown, .nkCream, .typewriter:
+            playCommunity(profile: profile, keyCode: keyCode, action: .down, intensity: intensity)
         case .custom:
             playCustom(keyCode: keyCode, action: .down, intensity: intensity)
         }
@@ -120,6 +156,8 @@ final class KeyboardAudioEngine {
             play(buffer: redMouseBuffer, pan: mousePan, intensity: 1)
         case .alpaca:
             playAlpacaMouse(pan: mousePan, intensity: 1)
+        case .holyPanda, .mxBlue, .mxBrown, .nkCream, .typewriter:
+            playCommunityMouse(profile: profile, pan: mousePan)
         case .custom:
             let buffers = customBuffers.mouseDown.isEmpty ? customBuffers.keyDown : customBuffers.mouseDown
             playNext(from: buffers, pan: mousePan, intensity: 1, counter: &customBuffers.nextMouseDown)
@@ -224,8 +262,36 @@ final class KeyboardAudioEngine {
     }
 
     private func playRelease(keyCode: UInt16, intensity: Float) {
-        guard profile == .custom else { return }
-        playCustom(keyCode: keyCode, action: .up, intensity: intensity * 0.62)
+        if profile == .custom {
+            playCustom(keyCode: keyCode, action: .up, intensity: intensity * 0.62)
+        } else if KeyboardSoundProfile.communityProfiles.contains(profile) {
+            playCommunity(profile: profile, keyCode: keyCode, action: .up, intensity: intensity * 0.62)
+        }
+    }
+
+    private func playCommunity(
+        profile: KeyboardSoundProfile,
+        keyCode: UInt16,
+        action: CustomSoundAction,
+        intensity: Float
+    ) {
+        guard var pack = communityBuffers[profile] else { return }
+        let kind = keyKind(for: keyCode)
+        var buffers = pack.buffers(action: action, kind: kind)
+        if buffers.isEmpty { buffers = pack.buffers(action: action, kind: .key) }
+        guard !buffers.isEmpty else { return }
+        let index = pack.takeNextCounter(action: action, kind: kind, count: buffers.count)
+        communityBuffers[profile] = pack
+        play(buffer: buffers[index], pan: pan(for: keyCode), intensity: intensity)
+    }
+
+    private func playCommunityMouse(profile: KeyboardSoundProfile, pan: Float) {
+        guard var pack = communityBuffers[profile] else { return }
+        let buffers = pack.mouseDown.isEmpty ? pack.keyDown : pack.mouseDown
+        guard !buffers.isEmpty else { return }
+        let index = pack.takeNextCounter(action: .down, kind: .mouse, count: buffers.count)
+        communityBuffers[profile] = pack
+        play(buffer: buffers[index], pan: pan, intensity: 1)
     }
 
     private func playCustom(keyCode: UInt16, action: CustomSoundAction, intensity: Float) {
@@ -276,15 +342,47 @@ final class KeyboardAudioEngine {
 
     func stop() { suspend() }
 
+    static func validateBundledAudioFiles(resourceURL: URL) throws -> Int {
+        guard let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: 48_000,
+            channels: 1,
+            interleaved: false
+        ) else {
+            throw AudioEngineError.couldNotCreateAudioFormat
+        }
+        let soundsURL = resourceURL.appendingPathComponent("Sounds", isDirectory: true)
+        guard let enumerator = FileManager.default.enumerator(
+            at: soundsURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            throw AudioEngineError.missingSoundResourcesDirectory
+        }
+        let audioFiles = enumerator.compactMap { $0 as? URL }
+            .filter { ["wav", "aiff", "aif", "caf", "mp3"].contains($0.pathExtension.lowercased()) }
+            .sorted { $0.path < $1.path }
+        for file in audioFiles {
+            do {
+                _ = try loadRecordedBuffer(from: file, format: format)
+            } catch {
+                throw AudioEngineError.incompatibleSoundResource(
+                    file.deletingPathExtension().lastPathComponent
+                )
+            }
+        }
+        return audioFiles.count
+    }
+
     private static func loadRecordedBuffer(
         named name: String,
+        resourceURL: URL,
         format: AVAudioFormat
     ) throws -> AVAudioPCMBuffer {
-        guard let url = Bundle.main.url(
-            forResource: name,
-            withExtension: "wav",
-            subdirectory: "Sounds"
-        ) else {
+        let url = resourceURL
+            .appendingPathComponent("Sounds", isDirectory: true)
+            .appendingPathComponent("\(name).wav")
+        guard FileManager.default.fileExists(atPath: url.path) else {
             throw AudioEngineError.missingSoundResource(name)
         }
 
@@ -333,6 +431,43 @@ final class KeyboardAudioEngine {
             throw conversionError ?? AudioEngineError.incompatibleSoundResource(name)
         }
         return converted
+    }
+
+    private static func loadBundledPack(
+        profile: KeyboardSoundProfile,
+        resourceURL: URL,
+        format: AVAudioFormat
+    ) throws -> CustomBuffers {
+        guard let folder = profile.bundledPackFolder else {
+            throw AudioEngineError.missingBundledSoundPack(profile.rawValue)
+        }
+        let folderURL = resourceURL
+            .appendingPathComponent("Sounds", isDirectory: true)
+            .appendingPathComponent("Community", isDirectory: true)
+            .appendingPathComponent(folder, isDirectory: true)
+        let files = try FileManager.default.contentsOfDirectory(
+            at: folderURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        )
+        .filter { ["wav", "aiff", "aif", "caf", "mp3"].contains($0.pathExtension.lowercased()) }
+        .sorted { $0.lastPathComponent < $1.lastPathComponent }
+
+        var buffers = CustomBuffers()
+        for file in files {
+            let category = CustomSoundName.category(
+                for: file.deletingPathExtension().lastPathComponent
+            )
+            buffers.append(
+                try loadRecordedBuffer(from: file, format: format),
+                action: category.action,
+                kind: category.kind
+            )
+        }
+        guard !buffers.keyDown.isEmpty else {
+            throw AudioEngineError.missingBundledSoundPack(profile.rawValue)
+        }
+        return buffers
     }
 
     private func pan(for keyCode: UInt16) -> Float {
@@ -427,13 +562,17 @@ private struct CustomBuffers {
 }
 
 enum AudioEngineError: LocalizedError {
+    case missingSoundResourcesDirectory
     case couldNotCreateAudioFormat
     case couldNotAllocateBuffer
     case missingSoundResource(String)
     case incompatibleSoundResource(String)
+    case missingBundledSoundPack(String)
 
     var errorDescription: String? {
         switch self {
+        case .missingSoundResourcesDirectory:
+            return "The app's bundled sound resources directory is missing."
         case .couldNotCreateAudioFormat:
             return "The keyboard audio format could not be created."
         case .couldNotAllocateBuffer:
@@ -442,6 +581,8 @@ enum AudioEngineError: LocalizedError {
             return "The bundled sound \(name).wav is missing."
         case .incompatibleSoundResource(let name):
             return "The bundled sound \(name).wav has an unsupported format."
+        case .missingBundledSoundPack(let name):
+            return "The bundled \(name) sound profile is missing or incomplete."
         }
     }
 }

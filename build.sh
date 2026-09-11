@@ -26,6 +26,8 @@ cp "$PROJECT_DIR/Resources/AppIcon.png" "$RESOURCES_DIR/AppIcon.png"
 cp "$PROJECT_DIR/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
 rm -rf "$RESOURCES_DIR/Sounds"
 cp -R "$PROJECT_DIR/Resources/Sounds" "$RESOURCES_DIR/Sounds"
+rm -rf "$RESOURCES_DIR/Licenses"
+rm -f "$RESOURCES_DIR/THIRD_PARTY_NOTICES.md"
 
 for arch in "${ARCHS[@]}"; do
     ARCH_BUILD_DIR="$BUILD_DIR/$arch"

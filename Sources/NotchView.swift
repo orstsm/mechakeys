@@ -159,6 +159,20 @@ struct NotchView: View {
             .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 10))
 
             Menu {
+                Section("Included Profiles") {
+                    ForEach(KeyboardSoundProfile.communityProfiles) { profile in
+                        Button {
+                            appDelegate.selectSoundProfile(profile)
+                        } label: {
+                            if appDelegate.soundProfile == profile {
+                                Label(profile.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(profile.rawValue)
+                            }
+                        }
+                    }
+                }
+                Divider()
                 ForEach(appDelegate.customSoundPacks) { pack in
                     Button {
                         appDelegate.selectCustomSoundPack(pack)
@@ -178,7 +192,9 @@ struct NotchView: View {
                 Label(
                     appDelegate.soundProfile == .custom
                         ? appDelegate.selectedProfileName
-                        : "Custom Sound Packs",
+                        : (KeyboardSoundProfile.communityProfiles.contains(appDelegate.soundProfile)
+                            ? appDelegate.selectedProfileName
+                            : "More Sound Profiles"),
                     systemImage: "waveform.badge.plus"
                 )
                 .font(.caption.weight(.semibold))
@@ -349,7 +365,7 @@ struct NotchView: View {
                         )
                         Divider().overlay(.white.opacity(0.1))
                         settingToggle(
-                            "Custom-pack release sounds",
+                            "Press-and-release sounds",
                             value: appDelegate.releaseSoundsEnabled,
                             action: appDelegate.setReleaseSoundsEnabled
                         )
@@ -478,7 +494,12 @@ struct NotchView: View {
                     featureRow(
                         icon: "keyboard.fill",
                         title: "Recorded sound profiles",
-                        description: "Choose Default, K Pro Red, Alpaca, or a validated custom pack stored in Application Support."
+                        description: "Choose Default, K Pro Red, Alpaca, Holy Panda, MX Blue, MX Brown, NK Cream, Typewriter, or a validated custom pack."
+                    )
+                    featureRow(
+                        icon: "music.note.list",
+                        title: "Privately approved recordings",
+                        description: "Five included profiles are used with permission. Their recordings may not be extracted, reused, repackaged, or redistributed separately."
                     )
                     featureRow(
                         icon: "waveform.badge.plus",

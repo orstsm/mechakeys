@@ -27,6 +27,8 @@ MechaKeys reads CoreAudio's local device list to determine whether an available 
 
 Custom sound packs are stored under the user's Application Support folder. Imports accept only short audio files and recognized metadata, reject symbolic links and enforce file-count, size and duration limits. Files are copied through a staging folder and validated again before activation. Imported audio remains local and is never uploaded.
 
+The included Holy Panda, MX Blue, MX Brown, NK Cream and Typewriter recordings are immutable application resources loaded from the signed bundle. They are included by private permission from their rights holder and are not licensed for extraction, reuse, repackaging or separate redistribution.
+
 ## Runtime security
 
 The optional notarized release path uses a Developer ID Application certificate, hardened runtime, a secure timestamp, and Apple notarization. `release.sh` refuses to run without a signing identity and notary keychain profile. The community workflow instead uses ad-hoc signing with hardened runtime. No hardened-runtime exceptions are requested.

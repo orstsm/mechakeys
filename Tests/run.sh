@@ -12,6 +12,8 @@ xcrun swiftc -module-cache-path "$TEST_DIR/cache" Sources/GlobalKeyboardMonitor.
 "$TEST_DIR/input-monitor"
 xcrun swiftc -module-cache-path "$TEST_DIR/cache" Sources/CustomSoundPack.swift Tests/CustomSoundPackTests.swift -o "$TEST_DIR/custom-packs"
 "$TEST_DIR/custom-packs"
+xcrun swiftc -module-cache-path "$TEST_DIR/cache" Sources/CustomSoundPack.swift Sources/KeyboardAudioEngine.swift Tests/BundledAudioTests.swift -o "$TEST_DIR/bundled-audio"
+"$TEST_DIR/bundled-audio" "$PROJECT_DIR/Resources"
 xcrun swiftc -module-cache-path "$TEST_DIR/cache" Sources/UpdateChecker.swift Tests/UpdateTests.swift -o "$TEST_DIR/updates"
 "$TEST_DIR/updates"
 xcrun swiftc -typecheck -module-cache-path "$TEST_DIR/cache" Tests/InstallApp.swift
@@ -25,3 +27,11 @@ for INVALID_TAG in v0.0.0 v2.12.0-beta invalid; do
     fi
 done
 plutil -lint Info.plist PrivacyInfo.xcprivacy
+for PACK in holy-panda mx-blue mx-brown nk-cream typewriter; do
+    PACK_DIR="Resources/Sounds/Community/$PACK"
+    [[ -d "$PACK_DIR" ]] || { echo "Missing bundled sound profile: $PACK" >&2; exit 1; }
+    find "$PACK_DIR" -maxdepth 1 -type f \( -iname '*.wav' -o -iname '*.mp3' \) | /usr/bin/grep -q . || {
+        echo "Bundled sound profile has no audio: $PACK" >&2
+        exit 1
+    }
+done

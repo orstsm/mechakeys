@@ -119,6 +119,12 @@ private struct MechaKeysPanel: View {
                 .disabled(!appDelegate.soundEnabled)
 
                 Menu {
+                    Section("Included Profiles") {
+                        ForEach(KeyboardSoundProfile.communityProfiles) { profile in
+                            Button(profile.rawValue) { appDelegate.selectSoundProfile(profile) }
+                        }
+                    }
+                    Divider()
                     ForEach(appDelegate.customSoundPacks) { pack in
                         Button(pack.name) { appDelegate.selectCustomSoundPack(pack) }
                     }
@@ -128,7 +134,9 @@ private struct MechaKeysPanel: View {
                     Label(
                         appDelegate.soundProfile == .custom
                             ? appDelegate.selectedProfileName
-                            : "Custom Sound Packs",
+                            : (KeyboardSoundProfile.communityProfiles.contains(appDelegate.soundProfile)
+                                ? appDelegate.selectedProfileName
+                                : "More Sound Profiles"),
                         systemImage: "waveform.badge.plus"
                     )
                 }
@@ -298,12 +306,17 @@ private struct MechaKeysPanel: View {
                     featureRow(
                         icon: "keyboard.fill",
                         title: "Recorded sound profiles",
-                        description: "Choose Default, K Pro Red, Alpaca, or validated custom sound packs."
+                        description: "Choose Default, K Pro Red, Alpaca, Holy Panda, MX Blue, MX Brown, NK Cream, Typewriter, or a validated custom pack."
+                    )
+                    featureRow(
+                        icon: "music.note.list",
+                        title: "Privately approved recordings",
+                        description: "Five included profiles are used with permission. Their recordings may not be extracted, reused, repackaged, or redistributed separately."
                     )
                     featureRow(
                         icon: "slider.horizontal.3",
                         title: "Natural dynamics",
-                        description: "Optional pitch variation, typing-speed response, repeat suppression and custom-pack release sounds."
+                        description: "Optional pitch variation, typing-speed response, repeat suppression and press-and-release sounds."
                     )
                     featureRow(
                         icon: "mic.slash.fill",

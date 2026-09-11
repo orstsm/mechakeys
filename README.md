@@ -17,7 +17,7 @@ See [installation and troubleshooting](INSTALL.md). Downloaded builds do not req
 ## Features
 
 - **Notch controls:** event-driven hover, sound toggle, profile selection, volume, test playback, About, settings and Quit.
-- **Recorded and custom profiles:** Default, K Pro Red and Alpaca, plus validated user-imported sound packs stored in Application Support.
+- **Recorded and custom profiles:** Default, K Pro Red, Alpaca, Holy Panda, MX Blue, MX Brown, NK Cream and Typewriter, plus validated user-imported sound packs stored in Application Support.
 - **Special sounds:** K Pro Red includes regular-key, Space and mouse samples; Alpaca additionally includes Delete/Backspace samples. Default shares four recorded variations across inputs.
 - **Spatial panning:** left and right keyboard regions subtly pan toward the corresponding speaker.
 - **Bluetooth audio pause:** pauses for connected Bluetooth audio devices and resumes when they disconnect, provided sounds were manually enabled. Bluetooth mice and keyboards do not trigger this pause.
@@ -57,7 +57,7 @@ Follow the [release checklist](docs/UPDATES.md), including how to check build fa
 | Location | Purpose |
 | --- | --- |
 | `Sources/` | Current app code: notch UI, audio, Bluetooth, permissions, updates |
-| `Resources/` | App icons and the 37 active sound recordings |
+| `Resources/` | App icons and 83 active sound recordings |
 | `Tests/` | Regression tests and installation verification utility |
 | `docs/` | Release instructions, reliability notes and battery evidence |
 | `.github/workflows/` | Automated tests and tag-triggered community releases |
@@ -65,7 +65,7 @@ Follow the [release checklist](docs/UPDATES.md), including how to check build fa
 
 `.build/` and `dist/` are local generated output, ignored by Git—not files users need to commit. Release downloads belong in GitHub Releases, not in the source tree.
 
-Before redistributing the recordings, confirm that you have the necessary rights to all bundled audio and artwork.
+The Holy Panda, MX Blue, MX Brown, NK Cream and Typewriter recordings are included by private permission from their rights holder. All audio rights are reserved: the recordings may be used only as part of MechaKeys and may not be extracted, copied, repackaged, reused or redistributed separately.
 
 Custom pack creators should follow the validated format in [docs/CUSTOM-SOUND-PACKS.md](docs/CUSTOM-SOUND-PACKS.md). Imported packs are limited to short local WAV, AIFF, CAF, or MP3 files; scripts and executable content are never copied.
 

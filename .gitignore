@@ -5,3 +5,7 @@ MechaKeys.app/
 dist/
 *.dmg
 *.zip
+
+# Private approval documents are retained outside the public repository.
+THIRD_PARTY_NOTICES.md
+Resources/Licenses/
