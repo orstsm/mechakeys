@@ -13,22 +13,6 @@ struct NotchView: View {
     @ObservedObject var model: ShelfModel
     @ObservedObject var appDelegate: AppDelegate
 
-    private var targetWidth: CGFloat {
-        if model.isExpanded {
-            return model.activePage.expandedSize.width
-        } else {
-            return model.physicalNotchWidth
-        }
-    }
-
-    private var targetHeight: CGFloat {
-        if model.isExpanded {
-            return model.activePage.expandedSize.height
-        } else {
-            return model.physicalNotchHeight
-        }
-    }
-
     var body: some View {
         ZStack(alignment: .top) {
             Color.black
@@ -56,7 +40,7 @@ struct NotchView: View {
                 bottomCornerRadius: model.isExpanded ? 22 : 14
             )
         )
-        .frame(width: targetWidth, height: targetHeight, alignment: .top)
+        // The panel owns the animated bounds, keeping drawing and hit testing aligned.
         // Frame and visibility must change atomically with the AppKit panel.
         // Animating a separate SwiftUI frame can leave transparent hit regions.
         .transaction { $0.animation = nil }
@@ -332,7 +316,7 @@ struct NotchView: View {
                         )
                         Divider().overlay(.white.opacity(0.1))
                         settingToggle(
-                            "Show Menu Bar Icon",
+                            "Use Menu Bar Instead of Island",
                             value: appDelegate.showsMenuBarIcon,
                             action: appDelegate.setShowsMenuBarIcon
                         )
@@ -544,7 +528,7 @@ struct NotchView: View {
                     featureRow(
                         icon: "display",
                         title: "Native MacBook Notch",
-                        description: "Lives seamlessly in your MacBook notch. Hover to open controls, or optionally enable the menu bar icon."
+                        description: "Choose island or menu-bar controls in Settings. In island mode, pause over the notch briefly to open; quick passes and dragging do not open it."
                     )
                     featureRow(
                         icon: "lock.shield.fill",

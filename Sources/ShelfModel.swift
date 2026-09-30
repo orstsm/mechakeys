@@ -26,6 +26,9 @@ final class ShelfModel: ObservableObject {
 
     // The controller rechecks pointer position at a single exit deadline.
     private var exitedAt: TimeInterval?
+    private var enteredAt: TimeInterval?
+    static let hoverDelay: TimeInterval = 0.18
+    var pendingOpen: Bool { enteredAt != nil && !isExpanded }
     private var requiresPointerExit = false
     private(set) var isManuallyOpened = false
 
@@ -40,6 +43,7 @@ final class ShelfModel: ObservableObject {
 
     func stop() {
         exitedAt = nil
+        enteredAt = nil
     }
 
     func toggleExpanded() {
@@ -57,6 +61,8 @@ final class ShelfModel: ObservableObject {
     }
 
     func open() {
+        guard isVisible else { return }
+        enteredAt = nil
         exitedAt = nil
         guard !isExpanded else { return }
         activePage = .controls
@@ -64,6 +70,7 @@ final class ShelfModel: ObservableObject {
     }
 
     func close() {
+        enteredAt = nil
         isManuallyOpened = false
         exitedAt = nil
         guard isExpanded else { return }
@@ -105,8 +112,10 @@ final class ShelfModel: ObservableObject {
 
             if isExpanded { return }
 
-            open()
+            if enteredAt == nil { enteredAt = now }
+            if now - (enteredAt ?? now) >= Self.hoverDelay { open() }
         } else {
+            enteredAt = nil
 
             if !isExpanded { return }
 

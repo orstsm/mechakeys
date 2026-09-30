@@ -13,6 +13,8 @@ final class NotchWindowController {
     private var displayAsleep = false
 
     private var closeTimer: Timer?
+    private var openTimer: Timer?
+    private var transitionID = 0
     private var globalMouseDownMonitor: Any?
     private var globalMouseMoveMonitor: Any?
     private var localMouseMonitor: Any?
@@ -49,7 +51,10 @@ final class NotchWindowController {
         model.$isVisible
             .removeDuplicates()
             .sink { [weak self] visible in
-                self?.applyVisibility(visible)
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, !self.isStopped else { return }
+                    self.applyVisibility(self.model.isVisible)
+                }
             }
             .store(in: &subscriptions)
 
@@ -91,6 +96,7 @@ final class NotchWindowController {
     }
 
     func orderFront() {
+        guard model.isVisible else { return }
         panel.orderFrontRegardless()
     }
 
@@ -129,7 +135,7 @@ final class NotchWindowController {
 
     private func setupMonitors() {
         removeMonitors()
-        guard !isStopped, !displayAsleep else { return }
+        guard !isStopped, !displayAsleep, model.isVisible else { return }
 
         // Movement delivers the opening signal; no recurring idle polling.
         globalMouseMoveMonitor = NSEvent.addGlobalMonitorForEvents(
@@ -156,6 +162,9 @@ final class NotchWindowController {
     }
 
     private func removeMonitors() {
+        openTimer?.invalidate()
+        openTimer = nil
+        model.stop()
         closeTimer?.invalidate()
         closeTimer = nil
 
@@ -169,6 +178,10 @@ final class NotchWindowController {
 
     private func checkMouseHover() {
         guard model.isVisible, let screen = targetScreen else { return }
+        if !model.isExpanded && NSEvent.pressedMouseButtons != 0 {
+            reportHover(false)
+            return
+        }
         let mouse = NSEvent.mouseLocation
 
         if model.isExpanded {
@@ -180,11 +193,10 @@ final class NotchWindowController {
             // Include the topmost coordinate; CGRect.contains excludes maxY.
             // The activation zone matches the physical notch, not the old
             // expanded window that remains during the closing animation.
-            // A tiny invisible margin tolerates edge approaches without
-            // enlarging the drawn notch or intercepting clicks below it.
-            let isInside = mouse.x >= collapsedFrame.minX - 4
-                && mouse.x <= collapsedFrame.maxX + 4
-                && mouse.y >= collapsedFrame.minY - 3
+            // No extra hover margin over adjacent menu items.
+            let isInside = mouse.x >= collapsedFrame.minX
+                && mouse.x <= collapsedFrame.maxX
+                && mouse.y >= collapsedFrame.minY
                 && mouse.y <= screen.frame.maxY
             reportHover(isInside)
         }
@@ -192,6 +204,20 @@ final class NotchWindowController {
 
     private func reportHover(_ inside: Bool) {
         model.reportPointerState(inside: inside)
+        if !model.pendingOpen {
+            openTimer?.invalidate()
+            openTimer = nil
+        } else if openTimer == nil {
+            // One cancellable deadline; stationary intentional hover opens too.
+            let timer = Timer(timeInterval: ShelfModel.hoverDelay + 0.01, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.openTimer = nil
+                    self?.checkMouseHover()
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            openTimer = timer
+        }
         if inside || !model.isExpanded || model.isManuallyOpened {
             closeTimer?.invalidate()
             closeTimer = nil
@@ -285,8 +311,21 @@ final class NotchWindowController {
 
         // Never leave an expanded, transparent window waiting for an animation
         // callback. Collapsed windows cannot swallow another app's clicks.
-        panel.ignoresMouseEvents = !expanded || !model.isVisible
-        panel.setFrame(frame, display: true)
+        transitionID += 1
+        let currentTransition = transitionID
+        panel.ignoresMouseEvents = true
+        let animate = model.isVisible && panel.isVisible && panel.frame != .zero
+            && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = animate ? (expanded ? 0.24 : 0.20) : 0
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().setFrame(frame, display: true)
+        } completionHandler: { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, !self.isStopped, self.transitionID == currentTransition else { return }
+                self.panel.ignoresMouseEvents = !self.model.isExpanded || !self.model.isVisible
+            }
+        }
         panel.contentView?.needsLayout = true
         panel.contentView?.layoutSubtreeIfNeeded()
         panel.contentView?.needsDisplay = true
@@ -298,6 +337,7 @@ final class NotchWindowController {
             setupMonitors()
             panel.orderFrontRegardless()
         } else {
+            transitionID += 1
             removeMonitors()
             closeTimer?.invalidate()
             closeTimer = nil

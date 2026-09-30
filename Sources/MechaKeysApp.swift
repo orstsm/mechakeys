@@ -210,7 +210,13 @@ private struct MechaKeysPanel: View {
             }
             .toggleStyle(.switch)
 
-            Text("MechaKeys lives in your MacBook notch. Hover the notch to access all controls anytime.")
+            Toggle("Use Menu Bar Instead of Island", isOn: Binding(
+                get: { appDelegate.showsMenuBarIcon },
+                set: { appDelegate.setShowsMenuBarIcon($0) }
+            ))
+            .toggleStyle(.switch)
+
+            Text("On: use the menu-bar icon. Off: pause the pointer over the island to open controls.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

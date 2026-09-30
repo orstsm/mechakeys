@@ -2,7 +2,9 @@
 
 Mechanical keyboard and mouse sounds for macOS, controlled from your MacBook's notch.
 
-Hover over the notch to turn sounds on or off, choose a profile, change volume, or open settings. MechaKeys is a standalone app: **NotchShelf and boringNotch are not required**. An optional menu-bar icon provides another way to reach the controls.
+Pause over the notch to turn sounds on or off, choose a profile, change volume, or open settings. MechaKeys is a standalone app: **NotchShelf and boringNotch are not required**. Turn on **Use Menu Bar Instead of Island** in Settings to use only the menu-bar icon; turn it off in the menu-bar controls to return to the island. The choice is remembered.
+
+Island opening requires a continuous 180 ms hover within the notch area. Quick passes and dragging cancel opening. Expansion and collapse animate with the panel bounds and respect Reduce Motion. Hover monitoring stops entirely in menu-bar mode; island mode uses mouse events and cancellable one-shot timers, not continuous polling.
 
 ## Download and install
 

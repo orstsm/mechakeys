@@ -61,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var showsMenuBarIcon: Bool {
         didSet {
             UserDefaults.standard.set(showsMenuBarIcon, forKey: "showsMenuBarIcon")
+            shelfModel?.setVisible(!showsMenuBarIcon)
         }
     }
 
@@ -190,12 +191,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         let shelf = ShelfModel()
         self.shelfModel = shelf
+        shelf.setVisible(!showsMenuBarIcon)
         shelf.start()
 
         let notchController = NotchWindowController(model: shelf, appDelegate: self)
         self.notchWindowController = notchController
         notchController.show()
-        shelf.openManually()
 
         updateKeyboardAccess()
         requestKeyboardAccessOnFirstLaunch()
@@ -211,8 +212,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         _ sender: NSApplication,
         hasVisibleWindows flag: Bool
     ) -> Bool {
-        notchWindowController?.orderFront()
-        shelfModel?.openManually()
+        if !showsMenuBarIcon {
+            notchWindowController?.orderFront()
+            shelfModel?.openManually()
+        }
         return true
     }
 
