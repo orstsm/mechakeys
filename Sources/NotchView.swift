@@ -84,7 +84,7 @@ struct NotchView: View {
                 .font(.title3)
                 .foregroundStyle(.red)
 
-            Text("MechaKeys")
+            Text("NotchHarbor")
                 .font(.headline.weight(.bold))
 
             Spacer()
@@ -104,7 +104,7 @@ struct NotchView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.white.opacity(0.72))
-            .help("MechaKeys Settings")
+            .help("NotchHarbor Settings")
         }
     }
 
@@ -268,7 +268,7 @@ struct NotchView: View {
                 Label("Paused while microphone is active", systemImage: "mic.fill")
                     .foregroundStyle(.orange)
             } else {
-                Text("MechaKeys \(appDelegate.version)")
+                Text("NotchHarbor \(appDelegate.version)")
                     .foregroundStyle(.white.opacity(0.36))
             }
 
@@ -288,7 +288,7 @@ struct NotchView: View {
                 .buttonStyle(.plain)
 
                 Spacer()
-                Text("MechaKeys Settings")
+                Text("NotchHarbor Settings")
                     .font(.headline.weight(.bold))
                 Spacer()
 
@@ -372,7 +372,7 @@ struct NotchView: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "info.circle.fill")
                                     .foregroundStyle(.red)
-                                Text("About MechaKeys & Features")
+                                Text("About NotchHarbor & Features")
                                     .font(.callout.weight(.semibold))
                                 Spacer()
                                 Image(systemName: "chevron.right")
@@ -395,7 +395,7 @@ struct NotchView: View {
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.38))
                 Spacer()
-                Button("Quit MechaKeys", role: .destructive) {
+                Button("Quit NotchHarbor", role: .destructive) {
                     NSApplication.shared.terminate(nil)
                 }
                 .buttonStyle(.bordered)
@@ -424,7 +424,7 @@ struct NotchView: View {
                 .buttonStyle(.plain)
 
                 Spacer()
-                Text("About MechaKeys")
+                Text("About NotchHarbor")
                     .font(.headline.weight(.bold))
                 Spacer()
 
@@ -443,9 +443,9 @@ struct NotchView: View {
                     .frame(width: 32, height: 32)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("MechaKeys \(appDelegate.version)")
+                    Text("NotchHarbor \(appDelegate.version)")
                         .font(.subheadline.weight(.bold))
-                    Text("Mechanical sound feedback for your Mac")
+                    Text("Home of MechaKeys keyboard sounds")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.65))
                 }
@@ -641,7 +641,7 @@ private struct VolumeLevelSlider: View {
         }
         .frame(height: 20)
         .opacity(isEnabled ? 1 : 0.38)
-        .accessibilityLabel("MechaKeys volume")
+        .accessibilityLabel("NotchHarbor volume")
         .accessibilityValue("\(Int(value * 100)) percent")
         .accessibilityAdjustableAction { direction in
             guard isEnabled else { return }

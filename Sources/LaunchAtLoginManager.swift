@@ -29,12 +29,16 @@ enum LaunchAtLoginManager {
         if isInstalledInApplications {
             // Keep the old registration until the replacement is approved.
             do {
+                // A public app rename changes its path, even though the bundle
+                // ID stays stable. Keep the existing fallback usable while the
+                // user reviews macOS login-item approval.
+                try install()
                 if SMAppService.mainApp.status == .notRegistered {
                     try SMAppService.mainApp.register()
                 }
                 if SMAppService.mainApp.status == .enabled { try remove() }
             } catch {
-                NSLog("MechaKeys login migration deferred: %@", error.localizedDescription)
+                NSLog("NotchHarbor login migration deferred: %@", error.localizedDescription)
             }
             return
         }
@@ -83,7 +87,7 @@ enum LaunchAtLoginManager {
 
         let propertyList: [String: Any] = [
             "Label": label,
-            // Launch through Launch Services so macOS registers MechaKeys as
+            // Launch through Launch Services so macOS registers NotchHarbor as
             // an application. Starting the Mach-O executable directly breaks
             // reopen behavior and cross-app notifications after login.
             "ProgramArguments": ["/usr/bin/open", "-gj", applicationURL.path],
@@ -121,6 +125,6 @@ enum LaunchAtLoginError: LocalizedError {
     case missingExecutable
 
     var errorDescription: String? {
-        "MechaKeys could not find its application executable."
+        "NotchHarbor could not find its application executable."
     }
 }

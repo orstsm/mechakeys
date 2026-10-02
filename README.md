@@ -1,19 +1,21 @@
-# MechaKeys
+# NotchHarbor
 
-Mechanical keyboard and mouse sounds for macOS, controlled from your MacBook's notch.
+Your Mac’s little control space — home of **MechaKeys** keyboard and mouse sounds.
 
-Pause over the notch to turn sounds on or off, choose a profile, change volume, or open settings. MechaKeys is a standalone app: **NotchShelf and boringNotch are not required**. Turn on **Use Menu Bar Instead of Island** in Settings to use only the menu-bar icon; turn it off in the menu-bar controls to return to the island. The choice is remembered.
+NotchHarbor is the new name for MechaKeys, starting with 2.15.0. This release preserves the existing sound engine and preferences. Spotify controls and a camera mirror are planned, **not included yet**. See the [rename and upgrade guide](docs/RENAMING.md).
+
+Pause over the notch to turn sounds on or off, choose a profile, change volume, or open settings. NotchHarbor is a standalone app: **NotchShelf and boringNotch are not required**. Turn on **Use Menu Bar Instead of Island** in Settings to use only the menu-bar icon; turn it off in the menu-bar controls to return to the island. The choice is remembered.
 
 Island opening requires a continuous 180 ms hover within the notch area. Quick passes and dragging cancel opening. Expansion and collapse animate with the panel bounds and respect Reduce Motion. Hover monitoring stops entirely in menu-bar mode; island mode uses mouse events and cancellable one-shot timers, not continuous polling.
 
-If neither interface is accessible, reopen **MechaKeys.app** from Applications to show the independent controls window. Its title shows the running version. Menu-bar mode also opens this window on launch or when selected, since macOS may obscure icons on a crowded menu bar. Close the window to keep MechaKeys running in the background.
+If neither interface is accessible, reopen **NotchHarbor.app** from Applications to show the independent controls window. Its title shows the running version. Menu-bar mode also opens this window on launch or when selected, since macOS may obscure icons on a crowded menu bar. Close the window to keep NotchHarbor running in the background.
 
 ## Download and install
 
-Open [GitHub Releases](https://github.com/orstsm/mechakeys/releases) and download the versioned **universal-community.zip** app asset. Unzip it and move **MechaKeys.app** to Applications. GitHub's automatic “Source code” ZIP is for developers, not an installer. If no release is listed, a downloadable build has not been published yet.
+Open [GitHub Releases](https://github.com/orstsm/notchharbor/releases) and download the versioned **universal-community.zip** app asset. Unzip it and move **NotchHarbor.app** to Applications. GitHub's automatic “Source code” ZIP is for developers, not an installer. If no release is listed, a downloadable build has not been published yet.
 
 - **Requirements:** macOS 13 or newer; Apple Silicon or Intel Mac. The notch interface is designed for MacBooks with a physical notch.
-- **Permission:** enable MechaKeys in System Settings → Privacy & Security → Input Monitoring for keyboard and mouse sounds.
+- **Permission:** enable NotchHarbor in System Settings → Privacy & Security → Input Monitoring for keyboard and mouse sounds.
 - **Community build:** ad-hoc signed and **not notarized by Apple**. macOS may block opening or require explicit per-app approval. Only install if you trust the project; never disable Gatekeeper or other system-wide protections. Updates may require Input Monitoring approval again.
 
 See [installation and troubleshooting](INSTALL.md). Downloaded builds do not require Xcode or developer tools.
@@ -34,7 +36,7 @@ See [installation and troubleshooting](INSTALL.md). Downloaded builds do not req
 
 ## Privacy and energy use
 
-Playback works offline. MechaKeys observes physical key/button events to play sounds; it does not record typed text, collect analytics, or upload input data. Optional update checks contact GitHub for public release information. See [security and privacy](SECURITY.md).
+Playback works offline. NotchHarbor observes physical key/button events to play sounds; it does not record typed text, collect analytics, or upload input data. Optional update checks contact GitHub for public release information. See [security and privacy](SECURITY.md).
 
 Hover has no repeating pointer-polling timer, and audio suspends after 30 seconds of inactivity. An idle test confirmed release of the audio sleep assertion, but **no app-specific battery-drain percentage has been established**. See [battery measurements and test procedure](docs/BATTERY-TEST.md).
 
@@ -45,7 +47,7 @@ Install Xcode Command Line Tools, then run these commands from the repository fo
 ```sh
 zsh Tests/run.sh
 zsh build.sh --build-only
-# Quit MechaKeys before installing the new build.
+# Quit NotchHarbor before installing the new build.
 zsh install.sh
 ```
 
@@ -53,7 +55,7 @@ Building does not replace your installed app. The explicit installer uses your u
 
 ## Publish an update from GitHub Desktop
 
-Update the version and release notes, commit/push the changes, then create and push the matching version tag from **History** (for example `v2.12.0`). GitHub Actions tests, builds and publishes the universal community ZIP, installation instructions and checksums. Ordinary commits do not publish releases.
+Update the version and release notes, commit/push the changes, then create and push the matching version tag from **History** (for example `v2.15.0`). GitHub Actions tests, builds and publishes the universal community ZIP, installation instructions and checksums. Ordinary commits do not publish releases.
 
 Follow the [release checklist](docs/UPDATES.md), including how to check build failures. No paid Apple Developer account is needed for community releases. The optional `release.sh` supports notarized releases when you have the required Apple credentials.
 
@@ -70,7 +72,7 @@ Follow the [release checklist](docs/UPDATES.md), including how to check build fa
 
 `.build/` and `dist/` are local generated output, ignored by Git—not files users need to commit. Release downloads belong in GitHub Releases, not in the source tree.
 
-The Holy Panda, MX Blue, MX Brown, NK Cream and Typewriter recordings are included by private permission from their rights holder. All audio rights are reserved: the recordings may be used only as part of MechaKeys and may not be extracted, copied, repackaged, reused or redistributed separately.
+The Holy Panda, MX Blue, MX Brown, NK Cream and Typewriter recordings are included by private permission from their rights holder. All audio rights are reserved: the recordings may be used only as part of NotchHarbor and may not be extracted, copied, repackaged, reused or redistributed separately.
 
 Custom pack creators should follow the validated format in [docs/CUSTOM-SOUND-PACKS.md](docs/CUSTOM-SOUND-PACKS.md). Imported packs are limited to short local WAV, AIFF, CAF, or MP3 files; scripts and executable content are never copied.
 

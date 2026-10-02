@@ -19,18 +19,18 @@ if [[ "${2:-}" == "--validate-only" ]]; then
 fi
 # Community packages never depend on a developer certificate or local identity.
 MECHAKEYS_SIGNING_IDENTITY=- zsh build.sh --build-only
-APP_DIR="$PROJECT_DIR/.build/Products/MechaKeys.app"
+APP_DIR="$PROJECT_DIR/.build/Products/NotchHarbor.app"
 codesign --verify --deep --strict "$APP_DIR"
-xcrun lipo "$APP_DIR/Contents/MacOS/MechaKeys" -verify_arch arm64
-xcrun lipo "$APP_DIR/Contents/MacOS/MechaKeys" -verify_arch x86_64
+xcrun lipo "$APP_DIR/Contents/MacOS/NotchHarbor" -verify_arch arm64
+xcrun lipo "$APP_DIR/Contents/MacOS/NotchHarbor" -verify_arch x86_64
 mkdir -p dist
-ARCHIVE="MechaKeys-$VERSION-universal-community.zip"
+ARCHIVE="NotchHarbor-$VERSION-universal-community.zip"
 ditto -c -k --keepParent --norsrc --noextattr "$APP_DIR" "dist/$ARCHIVE"
 unzip -tq "dist/$ARCHIVE"
 STAGE="$(mktemp -d "${TMPDIR:-/tmp}/mechakeys-release-check.XXXXXX")"
 trap 'rm -rf -- "$STAGE"' EXIT
 ditto -x -k "dist/$ARCHIVE" "$STAGE"
-codesign --verify --deep --strict "$STAGE/MechaKeys.app"
+codesign --verify --deep --strict "$STAGE/NotchHarbor.app"
 cp INSTALL.md dist/INSTALL.md
 {
     printf '%s\n\n' '**Community build: ad-hoc signed, NOT notarized by Apple.** macOS may block opening or require per-app approval. Never disable system-wide security protections.'

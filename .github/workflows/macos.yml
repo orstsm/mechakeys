@@ -9,3 +9,4 @@ jobs:
       - uses: actions/checkout@v5
       - run: zsh Tests/run.sh
       - run: zsh build.sh --build-only
+      - run: zsh Tests/install-migration.sh

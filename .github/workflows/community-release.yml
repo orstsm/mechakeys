@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   release:
-    if: github.repository == 'orstsm/mechakeys'
+    if: github.repository == 'orstsm/notchharbor'
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -32,6 +32,8 @@ jobs:
         run: zsh Tests/run.sh
       - name: Build and verify universal community app
         run: zsh package-community.sh "$GITHUB_REF_NAME"
+      - name: Verify rename and installation migration
+        run: zsh Tests/install-migration.sh
       - name: Publish download and installation instructions
         env:
           GH_TOKEN: ${{ github.token }}
@@ -42,8 +44,8 @@ jobs:
           # No overwrite/clobber: an existing release fails safely on reruns.
           # gh uploads assets to a draft before publishing the complete release.
           gh release create "$GITHUB_REF_NAME" \
-            "dist/MechaKeys-$version-universal-community.zip" \
+            "dist/NotchHarbor-$version-universal-community.zip" \
             dist/INSTALL.md dist/SHA256SUMS.txt \
             --verify-tag \
-            --title "MechaKeys $version — community build" \
+            --title "NotchHarbor $version — community build" \
             --notes-file dist/community-release-notes.md

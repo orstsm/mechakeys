@@ -27,7 +27,11 @@ struct GitHubRelease: Decodable {
     var safeURL: URL? {
         guard let url = URL(string: html_url), url.scheme == "https", url.host == "github.com",
               url.user == nil, url.password == nil, url.port == nil,
-              url.path.hasPrefix("/orstsm/mechakeys/releases/tag/") else { return nil }
+              url.query == nil, url.fragment == nil,
+              ReleaseVersion(tag_name) != nil,
+              ["notchharbor", "mechakeys"].contains(where: {
+                  url.path == "/orstsm/\($0)/releases/tag/\(tag_name)"
+              }) else { return nil }
         return url
     }
 }
@@ -43,6 +47,9 @@ private final class NoRedirects: NSObject, URLSessionTaskDelegate {
 
 @MainActor
 final class UpdateChecker: ObservableObject {
+    // GitHub's immutable repository ID survives the public name change without
+    // permitting network redirects or losing the existing repository history.
+    nonisolated static let endpoint = URL(string: "https://api.github.com/repositories/1356119654/releases/latest")!
     @Published private(set) var message = "Check GitHub for a newer release."
     @Published private(set) var isChecking = false
     @Published private(set) var releaseURL: URL?
@@ -103,11 +110,10 @@ final class UpdateChecker: ObservableObject {
             let session = URLSession(configuration: config, delegate: NoRedirects(), delegateQueue: nil)
             defer { session.invalidateAndCancel() }
             do {
-                let endpoint = URL(string: "https://api.github.com/repos/orstsm/mechakeys/releases/latest")!
-                var request = URLRequest(url: endpoint)
+                var request = URLRequest(url: Self.endpoint)
                 request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
                 request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
-                request.setValue("MechaKeys-UpdateChecker", forHTTPHeaderField: "User-Agent")
+                request.setValue("NotchHarbor-UpdateChecker", forHTTPHeaderField: "User-Agent")
                 let (bytes, response) = try await session.bytes(for: request)
                 guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
                 if http.statusCode == 404 {

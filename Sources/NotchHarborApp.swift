@@ -10,7 +10,7 @@ private let mechaKeysIcon: NSImage = {
 }()
 
 @main
-enum MechaKeysApp {
+enum NotchHarborApp {
     @MainActor
     static func main() {
         let application = NSApplication.shared
@@ -23,7 +23,7 @@ enum MechaKeysApp {
     }
 }
 
-struct MechaKeysPanel: View {
+struct NotchHarborPanel: View {
     @ObservedObject var appDelegate: AppDelegate
     @State private var showingAbout = false
 
@@ -45,7 +45,7 @@ struct MechaKeysPanel: View {
                 Image(nsImage: mechaKeysIcon)
                     .resizable()
                     .frame(width: 30, height: 30)
-                Text("MechaKeys")
+                Text("NotchHarbor")
                     .font(.headline)
                 Spacer()
                 if appDelegate.bluetoothAudioConnected {
@@ -175,7 +175,7 @@ struct MechaKeysPanel: View {
                     Label("Input Monitoring is required", systemImage: "exclamationmark.triangle.fill")
                         .font(.callout)
                         .foregroundStyle(.orange)
-                    Text("Allow MechaKeys to hear keys while you type in other apps.")
+                    Text("Allow NotchHarbor to hear keys while you type in other apps.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -272,9 +272,9 @@ struct MechaKeysPanel: View {
                     .frame(width: 38, height: 38)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("About MechaKeys")
+                    Text("About NotchHarbor")
                         .font(.title3.weight(.bold))
-                    Text("Mechanical sound feedback for your Mac")
+                    Text("Home of MechaKeys keyboard sounds")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

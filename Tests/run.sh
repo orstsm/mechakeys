@@ -20,7 +20,7 @@ xcrun swiftc -module-cache-path "$TEST_DIR/cache" -import-objc-header Sources/Au
 xcrun swiftc -module-cache-path "$TEST_DIR/cache" Sources/UpdateChecker.swift Tests/UpdateTests.swift -o "$TEST_DIR/updates"
 "$TEST_DIR/updates"
 xcrun swiftc -typecheck -module-cache-path "$TEST_DIR/cache" Tests/InstallApp.swift
-zsh -n build.sh install.sh package-local.sh package-community.sh release.sh
+zsh -n build.sh install.sh package-local.sh package-community.sh release.sh Tests/install-migration.sh
 VERSION="$(plutil -extract CFBundleShortVersionString raw Info.plist)"
 zsh package-community.sh "v$VERSION" --validate-only
 for INVALID_TAG in v0.0.0 v2.12.0-beta invalid; do

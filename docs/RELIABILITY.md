@@ -24,7 +24,7 @@ AppKit event observers are asynchronous: https://developer.apple.com/library/arc
 
 ## Installation and releases
 
-Builds and packaging have no installation side effects. The explicit installer verifies a staged bundle, refuses replacement while MechaKeys is running, and atomically exchanges bundles on the same volume. The previous app is retained inside a hidden `.noindex` directory with a non-app backup suffix. Local builds are still ad-hoc signed. Community releases disclose their lack of notarization. Optional notarized builds require the developer's own signing and notarization credentials.
+Builds and packaging have no installation side effects. The explicit installer verifies a staged bundle, refuses replacement while NotchHarbor is running, and atomically exchanges bundles on the same volume. The previous app is retained inside a hidden `.noindex` directory with a non-app backup suffix. Local builds are still ad-hoc signed. Community releases disclose their lack of notarization. Optional notarized builds require the developer's own signing and notarization credentials.
 
 ## Verification — 2.12.0
 

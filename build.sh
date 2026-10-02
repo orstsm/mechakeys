@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROJECT_DIR="${0:A:h}"
 BUILD_DIR="$PROJECT_DIR/.build"
-APP_DIR="$BUILD_DIR/Products/MechaKeys.app"
+APP_DIR="$BUILD_DIR/Products/NotchHarbor.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
@@ -57,13 +57,13 @@ for arch in "${ARCHS[@]}"; do
         -import-objc-header "$PROJECT_DIR/Sources/AudioSafety.h" \
         "$ARCH_BUILD_DIR/AudioSafety.o" \
         "$PROJECT_DIR"/Sources/*.swift \
-        -o "$ARCH_BUILD_DIR/MechaKeys"
+        -o "$ARCH_BUILD_DIR/NotchHarbor"
 done
 
 xcrun lipo -create \
-    "$BUILD_DIR/arm64/MechaKeys" \
-    "$BUILD_DIR/x86_64/MechaKeys" \
-    -output "$MACOS_DIR/MechaKeys"
+    "$BUILD_DIR/arm64/NotchHarbor" \
+    "$BUILD_DIR/x86_64/NotchHarbor" \
+    -output "$MACOS_DIR/NotchHarbor"
 
 SIGNING_IDENTITY="${MECHAKEYS_SIGNING_IDENTITY:--}"
 
@@ -92,7 +92,7 @@ fi
 
 plutil -lint "$CONTENTS_DIR/Info.plist" "$RESOURCES_DIR/PrivacyInfo.xcprivacy"
 codesign --verify --deep --strict --verbose=2 "$APP_DIR"
-xcrun lipo -info "$MACOS_DIR/MechaKeys"
+xcrun lipo -info "$MACOS_DIR/NotchHarbor"
 
 echo "Built $APP_DIR"
-echo "Builds never replace the installed app. Quit MechaKeys, then run: zsh install.sh"
+echo "Builds never replace the installed app. Quit NotchHarbor, then run: zsh install.sh"

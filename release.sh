@@ -3,10 +3,10 @@ set -euo pipefail
 
 PROJECT_DIR="${0:A:h}"
 DIST_DIR="$PROJECT_DIR/dist"
-APP_DIR="$PROJECT_DIR/.build/Products/MechaKeys.app"
+APP_DIR="$PROJECT_DIR/.build/Products/NotchHarbor.app"
 VERSION="$(plutil -extract CFBundleShortVersionString raw "$PROJECT_DIR/Info.plist")"
-UPLOAD_ZIP="$DIST_DIR/MechaKeys-notarization.zip"
-FINAL_ZIP="$DIST_DIR/MechaKeys-$VERSION.zip"
+UPLOAD_ZIP="$DIST_DIR/NotchHarbor-notarization.zip"
+FINAL_ZIP="$DIST_DIR/NotchHarbor-$VERSION.zip"
 
 : "${MECHAKEYS_SIGNING_IDENTITY:?Set this to your Developer ID Application identity}"
 : "${MECHAKEYS_NOTARY_PROFILE:?Set this to your notarytool keychain profile}"

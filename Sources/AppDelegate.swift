@@ -330,7 +330,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func importCustomSoundPack() {
         guard let customSoundPackLibrary else { return }
         let panel = NSOpenPanel()
-        panel.title = "Import MechaKeys Sound Pack"
+        panel.title = "Import NotchHarbor Sound Pack"
         panel.message = "Choose a folder with WAV, AIFF, CAF, or MP3 files. Regular key sounds are required."
         panel.prompt = "Import"
         panel.canChooseDirectories = true
@@ -505,7 +505,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func presentAudioError(_ error: Error) {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "MechaKeys could not start audio"
+        alert.messageText = "NotchHarbor could not start audio"
         alert.informativeText = error.localizedDescription
         alert.addButton(withTitle: "OK")
         alert.runModal()

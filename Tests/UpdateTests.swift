@@ -14,6 +14,20 @@ struct UpdateTests {
         }
         let valid = GitHubRelease(tag_name: "v3.0.0", html_url: "https://github.com/orstsm/mechakeys/releases/tag/v3.0.0", draft: false, prerelease: false)
         precondition(valid.safeURL != nil)
+        let renamed = GitHubRelease(tag_name: "v2.15.0", html_url: "https://github.com/orstsm/notchharbor/releases/tag/v2.15.0", draft: false, prerelease: false)
+        precondition(renamed.safeURL != nil)
+        for link in [
+            "https://github.com/orstsm/notchharbor/releases/tag/v2.15.0/extra",
+            "https://github.com/orstsm/notchharbor/releases/tag/v2.15.0?redirect=evil",
+            "https://github.com/orstsm/notchharbor/releases/tag/v2.15.0#fragment",
+            "https://github.com/orstsm/notchharbor/releases/tag/v9.0.0",
+            "https://github.com/orstsm/notchharbor-copy/releases/tag/v2.15.0",
+            "https://github.com:443/orstsm/notchharbor/releases/tag/v2.15.0",
+            "https://user@github.com/orstsm/notchharbor/releases/tag/v2.15.0"
+        ] {
+            precondition(GitHubRelease(tag_name: "v2.15.0", html_url: link, draft: false, prerelease: false).safeURL == nil)
+        }
+        precondition(UpdateChecker.endpoint.absoluteString == "https://api.github.com/repositories/1356119654/releases/latest")
         print("PASS: numeric version comparison, malformed versions, trusted release links")
     }
 }

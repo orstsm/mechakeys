@@ -12,15 +12,15 @@ final class MenuBarController: NSObject {
         controlsWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 640),
             styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         super.init()
-        controlsWindow.title = "MechaKeys Controls — \(appDelegate.version)"
+        controlsWindow.title = "NotchHarbor Controls — \(appDelegate.version)"
         controlsWindow.isReleasedWhenClosed = false
         controlsWindow.contentViewController = NSHostingController(rootView:
-            ScrollView { MechaKeysPanel(appDelegate: appDelegate) }
+            ScrollView { NotchHarborPanel(appDelegate: appDelegate) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         )
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
-            rootView: MechaKeysPanel(appDelegate: appDelegate)
+            rootView: NotchHarborPanel(appDelegate: appDelegate)
         )
     }
 
@@ -31,13 +31,28 @@ final class MenuBarController: NSObject {
                 return
             }
             let item = NSStatusBar.system.statusItem(withLength: 28)
-            let image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "MechaKeys")
-            image?.size = NSSize(width: 18, height: 18)
-            image?.isTemplate = true
+            let image = NSImage(size: NSSize(width: 20, height: 18), flipped: false) { _ in
+                let path = NSBezierPath()
+                path.move(to: NSPoint(x: 2, y: 13))
+                path.line(to: NSPoint(x: 6, y: 13))
+                path.line(to: NSPoint(x: 6, y: 8))
+                path.curve(to: NSPoint(x: 8, y: 6), controlPoint1: NSPoint(x: 6, y: 6), controlPoint2: NSPoint(x: 7, y: 6))
+                path.line(to: NSPoint(x: 12, y: 6))
+                path.curve(to: NSPoint(x: 14, y: 8), controlPoint1: NSPoint(x: 13, y: 6), controlPoint2: NSPoint(x: 14, y: 6))
+                path.line(to: NSPoint(x: 14, y: 13))
+                path.line(to: NSPoint(x: 18, y: 13))
+                path.lineWidth = 1.5
+                path.lineCapStyle = .round
+                path.lineJoinStyle = .round
+                NSColor.black.setStroke()
+                path.stroke()
+                NSBezierPath(roundedRect: NSRect(x: 7, y: 2, width: 6, height: 1.5), xRadius: 0.75, yRadius: 0.75).fill()
+                return true
+            }
+            image.isTemplate = true
             item.button?.image = image
-            if image == nil { item.button?.title = "MK" }
-            item.button?.setAccessibilityLabel("MechaKeys controls")
-            item.button?.toolTip = "MechaKeys"
+            item.button?.setAccessibilityLabel("NotchHarbor controls")
+            item.button?.toolTip = "NotchHarbor"
             item.button?.target = self
             item.button?.action = #selector(togglePopover)
             self.item = item
