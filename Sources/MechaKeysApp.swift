@@ -10,30 +10,20 @@ private let mechaKeysIcon: NSImage = {
 }()
 
 @main
-struct MechaKeysApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-
-    var body: some Scene {
-        MenuBarExtra(isInserted: Binding(
-            get: { appDelegate.showsMenuBarIcon },
-            set: { appDelegate.setShowsMenuBarIcon($0) }
-        )) {
-            MechaKeysPanel(appDelegate: appDelegate)
-        } label: {
-            Label(
-                "MechaKeys",
-                systemImage: appDelegate.soundEnabled ? "keyboard.fill" : "keyboard"
-            )
-        }
-        .menuBarExtraStyle(.window)
-
-        Settings {
-            EmptyView()
-        }
+enum MechaKeysApp {
+    @MainActor
+    static func main() {
+        let application = NSApplication.shared
+        let delegate = AppDelegate()
+        application.delegate = delegate
+        application.setActivationPolicy(.accessory)
+        // Both presentations use hosted SwiftUI views, not dynamically removed
+        // application scenes. Keep the delegate alive for the entire run loop.
+        withExtendedLifetime(delegate) { application.run() }
     }
 }
 
-private struct MechaKeysPanel: View {
+struct MechaKeysPanel: View {
     @ObservedObject var appDelegate: AppDelegate
     @State private var showingAbout = false
 

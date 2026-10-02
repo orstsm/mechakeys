@@ -6,6 +6,8 @@ Pause over the notch to turn sounds on or off, choose a profile, change volume, 
 
 Island opening requires a continuous 180 ms hover within the notch area. Quick passes and dragging cancel opening. Expansion and collapse animate with the panel bounds and respect Reduce Motion. Hover monitoring stops entirely in menu-bar mode; island mode uses mouse events and cancellable one-shot timers, not continuous polling.
 
+If neither interface is accessible, reopen **MechaKeys.app** from Applications to show the independent controls window. Its title shows the running version. Menu-bar mode also opens this window on launch or when selected, since macOS may obscure icons on a crowded menu bar. Close the window to keep MechaKeys running in the background.
+
 ## Download and install
 
 Open [GitHub Releases](https://github.com/orstsm/mechakeys/releases) and download the versioned **universal-community.zip** app asset. Unzip it and move **MechaKeys.app** to Applications. GitHub's automatic “Source code” ZIP is for developers, not an installer. If no release is listed, a downloadable build has not been published yet.
@@ -27,6 +29,7 @@ See [installation and troubleshooting](INSTALL.md). Downloaded builds do not req
 - **Call-aware pause:** optionally pauses while a microphone is active using Core Audio property events—no repeating microphone poll.
 - **Low-latency playback:** all active sounds are preloaded into the existing polyphonic engine with stale-event dropping. Audio stops after 30 seconds without input; cold wake retains only the newest key and discards delayed mouse clicks.
 - **Convenience:** launch at login, remembered preferences and optional menu-bar access.
+- **Sleep recovery:** keyboard monitoring and audio-device state are refreshed on system wake/session reactivation, with one settling check rather than continuous polling. Playback does not require an internet connection.
 - **Update checks:** Settings → Check for Updates, plus optional daily checks (off by default). Downloads and installation remain manual.
 
 ## Privacy and energy use

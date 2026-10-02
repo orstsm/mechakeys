@@ -61,7 +61,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var showsMenuBarIcon: Bool {
         didSet {
             UserDefaults.standard.set(showsMenuBarIcon, forKey: "showsMenuBarIcon")
-            shelfModel?.setVisible(!showsMenuBarIcon)
+            // Do not tear down the control's owning window during its click callback.
+            DispatchQueue.main.async { [weak self] in self?.applyPresentationMode() }
         }
     }
 
@@ -83,6 +84,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     private var notchWindowController: NotchWindowController?
     private var shelfModel: ShelfModel?
+    private var menuBarController: MenuBarController?
+    private var lifecycleMonitor: WorkspaceLifecycleMonitor?
+    private var systemSleeping = false
 
     var callMuteActive: Bool { muteDuringCalls && microphoneActive }
 
@@ -197,6 +201,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let notchController = NotchWindowController(model: shelf, appDelegate: self)
         self.notchWindowController = notchController
         notchController.show()
+        menuBarController = MenuBarController(appDelegate: self)
+        applyPresentationMode()
+        if showsMenuBarIcon { menuBarController?.showControls() }
+        lifecycleMonitor = WorkspaceLifecycleMonitor(
+            onSleep: { [weak self] in self?.prepareForSleep() },
+            onWake: { [weak self] in self?.recoverAfterWake() }
+        )
 
         updateKeyboardAccess()
         requestKeyboardAccessOnFirstLaunch()
@@ -212,15 +223,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         _ sender: NSApplication,
         hasVisibleWindows flag: Bool
     ) -> Bool {
-        if !showsMenuBarIcon {
-            notchWindowController?.orderFront()
-            shelfModel?.openManually()
-        }
+        menuBarController?.showControls()
         return true
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         updateChecker.stop()
+        lifecycleMonitor?.stop()
+        menuBarController?.setVisible(false)
         shelfModel?.stop()
         notchWindowController?.stop()
         keyboardMonitor?.stop()
@@ -233,6 +243,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func playTestSound() {
         guard soundEnabled else { return }
         audioController?.playTestSound()
+    }
+
+    private func applyPresentationMode() {
+        // Create the alternate entry point before removing the old one.
+        if showsMenuBarIcon {
+            menuBarController?.setVisible(true)
+            shelfModel?.setVisible(false)
+        } else {
+            shelfModel?.setVisible(true)
+            menuBarController?.setVisible(false)
+        }
+    }
+
+    private func prepareForSleep() {
+        systemSleeping = true
+        keyboardMonitor?.stop()
+        keyboardMonitor = nil
+        accessCheckTimer?.invalidate()
+        accessCheckTimer = nil
+        audioController?.suspend()
+        bluetoothAudioMonitor?.stop()
+        microphoneActivityMonitor?.stop()
+    }
+
+    private func recoverAfterWake() {
+        systemSleeping = false
+        // Recreate the event tap even if the old object still existed. Also
+        // clears held-key state when key-up was missed while the Mac slept.
+        keyboardMonitor?.stop()
+        keyboardMonitor = nil
+        bluetoothAudioMonitor?.stop()
+        microphoneActivityMonitor?.stop()
+        bluetoothAudioConnected = bluetoothAudioMonitor?.hasConnectedBluetoothAudioOutput ?? false
+        microphoneActive = muteDuringCalls && (microphoneActivityMonitor?.isMicrophoneActive ?? false)
+        bluetoothAudioMonitor?.start()
+        if muteDuringCalls { microphoneActivityMonitor?.start() }
+        audioController?.suspend()
+        applyPlaybackState(playTestOnEnable: false)
+        // Lazy audio restart on the first input preserves idle suspension.
+        updateKeyboardAccess()
+        notchWindowController?.recoverAfterWake()
     }
 
     func toggleSounds() {
@@ -317,6 +368,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     func setShowsMenuBarIcon(_ shows: Bool) {
         showsMenuBarIcon = shows
+        if shows {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.showsMenuBarIcon else { return }
+                self.menuBarController?.showControls()
+            }
+        }
     }
 
     func requestKeyboardAccess() {
@@ -341,7 +398,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     private func startAccessChecksIfNeeded() {
-        guard soundEnabled, !hasKeyboardAccess, accessCheckTimer == nil else { return }
+        guard !systemSleeping, soundEnabled, !hasKeyboardAccess, accessCheckTimer == nil else { return }
         accessCheckTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 self?.accessCheckTimer = nil
@@ -351,6 +408,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     private func updateKeyboardAccess() {
+        guard !systemSleeping else { return }
         let accessGranted = CGPreflightListenEventAccess()
         hasKeyboardAccess = accessGranted
 
@@ -415,6 +473,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         playTestOnEnable: Bool,
         rebuildAudioRoute: Bool = false
     ) {
+        guard !systemSleeping else { return }
         let shouldEnable = PlaybackPolicy.shouldEnable(
             userEnabled: userSoundEnabled,
             bluetoothAudioConnected: bluetoothAudioConnected,

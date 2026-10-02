@@ -14,7 +14,6 @@ final class NotchWindowController {
 
     private var closeTimer: Timer?
     private var openTimer: Timer?
-    private var transitionID = 0
     private var globalMouseDownMonitor: Any?
     private var globalMouseMoveMonitor: Any?
     private var localMouseMonitor: Any?
@@ -98,6 +97,14 @@ final class NotchWindowController {
     func orderFront() {
         guard model.isVisible else { return }
         panel.orderFrontRegardless()
+    }
+
+    func recoverAfterWake() {
+        guard !isStopped else { return }
+        displayAsleep = false
+        model.resetAfterWake()
+        selectScreenAndPosition()
+        applyVisibility(model.isVisible)
     }
 
     func stop() {
@@ -311,20 +318,15 @@ final class NotchWindowController {
 
         // Never leave an expanded, transparent window waiting for an animation
         // callback. Collapsed windows cannot swallow another app's clicks.
-        transitionID += 1
-        let currentTransition = transitionID
-        panel.ignoresMouseEvents = true
+        // Input availability must not depend on an animation completion that
+        // can be canceled by sleep, display changes, or a presentation switch.
+        panel.ignoresMouseEvents = !expanded || !model.isVisible || displayAsleep
         let animate = model.isVisible && panel.isVisible && panel.frame != .zero
             && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         NSAnimationContext.runAnimationGroup { context in
             context.duration = animate ? (expanded ? 0.24 : 0.20) : 0
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             panel.animator().setFrame(frame, display: true)
-        } completionHandler: { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self, !self.isStopped, self.transitionID == currentTransition else { return }
-                self.panel.ignoresMouseEvents = !self.model.isExpanded || !self.model.isVisible
-            }
         }
         panel.contentView?.needsLayout = true
         panel.contentView?.layoutSubtreeIfNeeded()
@@ -337,7 +339,6 @@ final class NotchWindowController {
             setupMonitors()
             panel.orderFrontRegardless()
         } else {
-            transitionID += 1
             removeMonitors()
             closeTimer?.invalidate()
             closeTimer = nil

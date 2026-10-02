@@ -46,6 +46,11 @@ final class ShelfModel: ObservableObject {
         enteredAt = nil
     }
 
+    func resetAfterWake() {
+        close()
+        requiresPointerExit = false
+    }
+
     func toggleExpanded() {
         if isExpanded {
             close()

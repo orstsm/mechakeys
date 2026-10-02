@@ -61,6 +61,17 @@ struct HoverStateTests {
         model.reportPointerState(inside: true, now: 211)
         model.stop()
         precondition(!model.pendingOpen, "Stopping cancels pending hover")
+        model.openManually()
+        model.closeExplicitly()
+        model.resetAfterWake()
+        model.reportPointerState(inside: true, now: 300)
+        model.reportPointerState(inside: true, now: 300.19)
+        precondition(model.isExpanded, "Wake clears a stale explicit-close latch")
+        model.setVisible(false)
+        model.resetAfterWake()
+        model.reportPointerState(inside: true, now: 301)
+        model.reportPointerState(inside: true, now: 302)
+        precondition(!model.isExpanded, "Wake must preserve menu-bar mode")
         print("PASS: intentional dwell, canceled opening/closing, 100 cycles, explicit close, mode switching")
     }
 }

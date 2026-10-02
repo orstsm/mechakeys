@@ -4,6 +4,8 @@ final class FakeEngine: InputAudioEngine {
     var volume: Float = 0
     var profile: KeyboardSoundProfile = .standard
     var pitchVariationEnabled = true
+    var lastPlaybackError: String?
+    var failPlayback = false
     let entered = DispatchSemaphore(value: 0)
     let release = DispatchSemaphore(value: 0)
     var blockStart = false
@@ -15,11 +17,16 @@ final class FakeEngine: InputAudioEngine {
     private var mice = 0
     private var sleeps = 0
     func start() throws {
+        lastPlaybackError = nil
         entered.signal()
         if blockStart { release.wait() }
         if failStart { throw NSError(domain: "test", code: 1) }
     }
     func playKeyboard(keyCode: UInt16, action: KeyPlaybackAction, intensity: Float) {
+        if failPlayback {
+            lastPlaybackError = "Injected route interruption"
+            return
+        }
         lock.lock()
         played.append(keyCode)
         actions.append(action)
@@ -41,6 +48,12 @@ final class FakeEngine: InputAudioEngine {
 @main
 struct AudioLifecycleTests {
     static func main() {
+        let exception = MKAudioCatchException {
+            NSException(name: .internalInconsistencyException,
+                        reason: "Injected audio exception", userInfo: nil).raise()
+        }
+        precondition(exception?.localizedDescription == "Injected audio exception",
+                     "Objective-C audio exceptions must become recoverable errors")
         precondition(KeyboardSoundProfile.featuredProfiles == [.standard, .red, .alpaca])
         precondition(KeyboardSoundProfile.communityProfiles.count == 5)
         precondition(Set(KeyboardSoundProfile.communityProfiles.compactMap(\.bundledPackFolder)).count == 5)
@@ -106,6 +119,19 @@ struct AudioLifecycleTests {
         precondition(playback.0.contains(where: { $0 == .up }), "Enabled release sounds must reach the engine")
         precondition(playback.1.contains(where: { $0 > 1 }), "Fast typing should receive subtle dynamics")
         dynamics.stopSynchronously()
+        let interrupted = FakeEngine()
+        interrupted.failPlayback = true
+        let recovery = InputAudioController(engine: interrupted, volume: 0.5, profile: .red, idleTimeout: 30)
+        let reported = DispatchSemaphore(value: 0)
+        recovery.onHealthChange = { error in if error != nil { reported.signal() } }
+        recovery.handle(.keyDown(4))
+        precondition(reported.wait(timeout: .now() + 2) == .success)
+        precondition(interrupted.snapshot.2 > 0, "Interrupted playback suspends the failed engine")
+        interrupted.failPlayback = false
+        recovery.handle(.keyDown(5))
+        Thread.sleep(forTimeInterval: 0.05)
+        recovery.stopSynchronously()
+        precondition(interrupted.snapshot.0 == [5], "Next input recovers without replaying the failed key")
         print("PASS: wake coalescing, stale protection, idle suspend, release sounds, typing dynamics")
     }
 }

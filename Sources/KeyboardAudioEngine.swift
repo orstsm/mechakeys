@@ -58,6 +58,7 @@ final class KeyboardAudioEngine {
     var volume: Float = 0.72
     var profile: KeyboardSoundProfile = .standard
     var pitchVariationEnabled = true
+    private(set) var lastPlaybackError: String?
 
     init(
         polyphony: Int = 8,
@@ -189,12 +190,19 @@ final class KeyboardAudioEngine {
 
     func start() throws {
         guard !engine.isRunning else { return }
-        engine.prepare()
-        try engine.start()
-        // Keep player nodes rendering silence so warm events can be scheduled
-        // without paying a node-start delay on each key press.
-        for player in players {
-            player.play()
+        lastPlaybackError = nil
+        var startError: Error?
+        let exception = MKAudioCatchException {
+            do {
+                self.engine.prepare()
+                try self.engine.start()
+                // A device can disappear between engine start and player start.
+                for player in self.players { player.play() }
+            } catch { startError = error }
+        }
+        if let error = exception ?? startError {
+            suspend()
+            throw error
         }
     }
 
@@ -326,9 +334,15 @@ final class KeyboardAudioEngine {
         player.pan = pan
         player.volume = min(max(volume * intensity, 0), 1)
         pitchUnit.rate = pitchVariationEnabled ? Float.random(in: 0.985...1.015) : 1
-        player.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
-        if !player.isPlaying {
-            player.play()
+        guard engine.isRunning else {
+            lastPlaybackError = "Audio output stopped; retrying on the next input."
+            return
+        }
+        if let error = MKAudioCatchException({
+            player.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
+            if !player.isPlaying { player.play() }
+        }) {
+            lastPlaybackError = error.localizedDescription
         }
     }
 

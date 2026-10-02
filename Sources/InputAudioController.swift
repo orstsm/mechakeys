@@ -17,6 +17,7 @@ protocol InputAudioEngine: AnyObject {
     var volume: Float { get set }
     var profile: KeyboardSoundProfile { get set }
     var pitchVariationEnabled: Bool { get set }
+    var lastPlaybackError: String? { get }
 
     func start() throws
     func playKeyboard(keyCode: UInt16, action: KeyPlaybackAction, intensity: Float)
@@ -27,6 +28,9 @@ protocol InputAudioEngine: AnyObject {
 }
 
 extension KeyboardAudioEngine: InputAudioEngine {}
+extension InputAudioEngine {
+    var lastPlaybackError: String? { nil }
+}
 
 final class InputAudioController {
     private enum Phase {
@@ -292,6 +296,7 @@ final class InputAudioController {
         if let keyToPlay {
             engine.playKeyboard(keyCode: keyToPlay, action: .down, intensity: 1)
         }
+        if recoverPlaybackFailure() { return }
         scheduleIdleTimerFromLastInput()
     }
 
@@ -328,7 +333,21 @@ final class InputAudioController {
         if timingLogEnabled {
             timingLog(String(format: "MechaKeys warm input scheduling delay: %.2f ms", Double(delay) / 1_000_000))
         }
+        if recoverPlaybackFailure() { return }
         scheduleIdleTimerFromLastInput()
+    }
+
+    private func recoverPlaybackFailure() -> Bool {
+        guard let error = engine.lastPlaybackError else { return false }
+        stateLock.lock()
+        generation &+= 1
+        phase = .sleeping
+        pendingWakeKey = nil
+        stateLock.unlock()
+        idleTimer.schedule(deadline: .distantFuture)
+        engine.suspend()
+        onHealthChange?(error)
+        return true
     }
 
     private func typingIntensity(at eventTime: UInt64) -> Float {

@@ -34,6 +34,11 @@ for arch in "${ARCHS[@]}"; do
     ARCH_MODULE_CACHE_DIR="$MODULE_CACHE_DIR/$arch"
     mkdir -p "$ARCH_BUILD_DIR" "$ARCH_MODULE_CACHE_DIR"
 
+    xcrun clang -fobjc-arc -fmodules -isysroot "$SDK_PATH" \
+        -fmodules-cache-path="$ARCH_MODULE_CACHE_DIR" \
+        -target "$arch-apple-macos13.0" -c "$PROJECT_DIR/Sources/AudioSafety.m" \
+        -o "$ARCH_BUILD_DIR/AudioSafety.o"
+
     xcrun swiftc \
         -parse-as-library \
         -O \
@@ -49,6 +54,8 @@ for arch in "${ARCHS[@]}"; do
         -framework QuartzCore \
         -framework ServiceManagement \
         -framework SwiftUI \
+        -import-objc-header "$PROJECT_DIR/Sources/AudioSafety.h" \
+        "$ARCH_BUILD_DIR/AudioSafety.o" \
         "$PROJECT_DIR"/Sources/*.swift \
         -o "$ARCH_BUILD_DIR/MechaKeys"
 done

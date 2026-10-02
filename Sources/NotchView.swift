@@ -47,11 +47,6 @@ struct NotchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .contentShape(Rectangle())
         .environment(\.colorScheme, .dark)
-        .onTapGesture {
-            if !model.isExpanded {
-                model.openManually()
-            }
-        }
     }
 
     private var controlsPage: some View {
